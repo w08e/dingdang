@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to SQL Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 900px;
+            margin-top: 30px;
+        }
+        .sql-output {
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .column-type-row {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">CSV to SQL Converter</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">Upload CSV File</div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">CSV File:</label>
+                        <input type="file" class="form-control" id="csvFile" name="file" accept=".csv" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tableName" class="form-label">Table Name:</label>
+                        <input type="text" class="form-control" id="tableName" name="tableName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="databaseType" class="form-label">Database Type:</label>
+                        <select class="form-select" id="databaseType" name="databaseType" required>
+                            <option value="">Select a database type</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlserver">SQL Server</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" id="previewBtn">Preview Columns</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mb-4" id="columnConfiguration" style="display: none;">
+            <div class="card-header">Configure Column Types</div>
+            <div class="card-body">
+                <p>Specify the data type for each column. Date/time columns require special handling.</p>
+                <div id="columnTypes" class="mb-3">
+                    <!-- Column type selectors will be added here dynamically -->
+                </div>
+                <button type="button" class="btn btn-primary" id="generateSqlBtn">Generate SQL</button>
+            </div>
+        </div>
+        
+        <div class="card" id="sqlOutput" style="display: none;">
+            <div class="card-header">Generated SQL</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="alert alert-success" id="successMessage"></div>
+                    <label for="sqlStatements" class="form-label">SQL INSERT Statements:</label>
+                    <div class="sql-output" id="sqlStatements"></div>
+                </div>
+                <button type="button" class="btn btn-secondary" id="copyBtn">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const previewBtn = document.getElementById('previewBtn');
+            const generateSqlBtn = document.getElementById('generateSqlBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const columnTypes = document.getElementById('columnTypes');
+            
+            previewBtn.addEventListener('click', function() {
+                const formData = new FormData();
+                const fileInput = document.getElementById('csvFile');
+                
+                if (fileInput.files.length === 0) {
+                    alert('Please select a CSV file');
+                    return;
+                }
+                
+                formData.append('file', fileInput.files[0]);
+                
+                fetch('/api/csv-to-sql/preview', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error previewing file');
+                    }
+                    return response.json();
+                })
+                .then(columns => {
+                    displayColumnTypes(columns);
+                    document.getElementById('columnConfiguration').style.display = 'block';
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            });
+            
+            generateSqlBtn.addEventListener('click', function() {
+                const formData = new FormData();
+                const fileInput = document.getElementById('csvFile');
+                const tableName = document.getElementById('tableName').value;
+                const databaseType = document.getElementById('databaseType').value;
+                
+                if (fileInput.files.length === 0 || !tableName || !databaseType) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                formData.append('file', fileInput.files[0]);
+                formData.append('tableName', tableName);
+                formData.append('databaseType', databaseType);
+                
+                // Get all column type selections
+                const typeSelects = document.querySelectorAll('.column-type-select');
+                typeSelects.forEach(select => {
+                    if (select.value !== 'string') {
+                        formData.append('columnTypes[' + select.dataset.column + ']', select.value);
+                    }
+                });
+                
+                fetch('/api/csv-to-sql/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error generating SQL');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        displaySqlOutput(data);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            });
+            
+            copyBtn.addEventListener('click', function() {
+                const sqlStatements = document.getElementById('sqlStatements').textContent;
+                navigator.clipboard.writeText(sqlStatements)
+                    .then(() => {
+                        alert('SQL copied to clipboard!');
+                    })
+                    .catch(err => {
+                        alert('Error copying to clipboard: ' + err);
+                    });
+            });
+            
+            function displayColumnTypes(columns) {
+                columnTypes.innerHTML = '';
+                
+                columns.forEach(column => {
+                    const row = document.createElement('div');
+                    row.className = 'column-type-row row align-items-center';
+                    
+                    const colLabel = document.createElement('div');
+                    colLabel.className = 'col-md-6';
+                    colLabel.textContent = column;
+                    
+                    const colSelect = document.createElement('div');
+                    colSelect.className = 'col-md-6';
+                    
+                    const select = document.createElement('select');
+                    select.className = 'form-select column-type-select';
+                    select.dataset.column = column;
+                    
+                    // Add common data types
+                    const types = [
+                        { value: 'string', text: 'String' },
+                        { value: 'int', text: 'Integer' },
+                        { value: 'decimal', text: 'Decimal/Float' },
+                        { value: 'date', text: 'Date' },
+                        { value: 'datetime', text: 'DateTime' },
+                        { value: 'timestamp', text: 'Timestamp' }
+                    ];
+                    
+                    types.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.value;
+                        option.textContent = type.text;
+                        
+                        // Auto-detect date/time columns
+                        if ((column.toLowerCase().includes('date') || 
+                             column.toLowerCase().includes('time')) && 
+                             type.value === 'date') {
+                            option.selected = true;
+                        } else if (type.value === 'string') {
+                            option.selected = true;
+                        }
+                        
+                        select.appendChild(option);
+                    });
+                    
+                    colSelect.appendChild(select);
+                    row.appendChild(colLabel);
+                    row.appendChild(colSelect);
+                    columnTypes.appendChild(row);
+                });
+            }
+            
+            function displaySqlOutput(data) {
+                document.getElementById('sqlOutput').style.display = 'block';
+                document.getElementById('successMessage').textContent = data.message;
+                
+                const sqlStatements = document.getElementById('sqlStatements');
+                sqlStatements.textContent = data.sqlStatements.join('\n\n');
+                
+                // Scroll to SQL output
+                document.getElementById('sqlOutput').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html> 

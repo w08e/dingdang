@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="x5-page-mode" content="app">
+    <meta name="viewport" http-equiv="content-security-policy"
+          content="width=device-width, initial-scale=1.0,accelerometer=*, gyroscope=*">
+    <title>测评结果</title>
+    <style>
+        /* 修复水平滚动条问题 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f7f0ff;
+            background-image: linear-gradient(135deg, #f7f0ff 0%, #e6d3f9 100%);
+        }
+
+        .content {
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            border-left: 16px solid #DD9EF4;
+            border-right: 16px solid #DD9EF4;
+            border-top: 16px solid #DD9EF4;
+            border-bottom: 16px solid #DD9EF4;
+            box-sizing: border-box;
+        }
+
+        .results {
+            background-color: white;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+        }
+
+        .results-header {
+            margin-bottom: 20px;
+        }
+
+        .results-header h2 {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .score {
+            margin: 30px 0;
+            background: linear-gradient(135deg, #f9f4ff, #f5eeff);
+            border-radius: 24px;
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(163, 103, 220, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease-out forwards;
+            border: 1px solid rgba(163, 103, 220, 0.1);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-label {
+            font-size: 16px;
+            display: inline-block;
+            background-color: white;
+            color: #8a57c2;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(138, 87, 194, 0.15);
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 1px;
+        }
+
+        .score-value {
+            font-size: 70px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #9356cc, #c188ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px auto 15px;
+            position: relative;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            animation: pulseEffect 1.5s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes pulseEffect {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .score-value:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, #a367dc, transparent);
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .score-severity {
+            display: inline-block;
+            background: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            padding: 10px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 25px auto 0;
+            border-radius: 30px;
+            box-shadow: 0 8px 20px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-severity:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 100%;
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .score-range {
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            line-height: 1.6;
+            background-color: white;
+            padding: 18px;
+            border-radius: 16px;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #f0e5ff;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.5s;
+        }
+
+        .score-range:before {
+            content: "ℹ️";
+            margin-right: 8px;
+        }
+
+        .recommendations {
+            background-color: #f7f0ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: left;
+            border: 1px dashed #e6d3f9;
+        }
+
+        .recommendations-title {
+            color: #a367dc;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendations-title:before {
+            content: "♥";
+            margin-right: 8px;
+            color: #c188ee;
+        }
+
+        .recommendations-text {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .clinic-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .clinic-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .follow-btn {
+            background-color: #fcf0ff;
+            color: #a367dc;
+            font-size: 16px;
+            padding: 12px;
+            border: 2px solid #a367dc;
+            border-radius: 30px;
+            width: 90%;
+            margin: 10px auto 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.2);
+            transition: all 0.3s;
+        }
+
+        .follow-btn:active {
+            transform: translateY(2px);
+            background-color: #f2e6ff;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.2);
+        }
+
+        .save-text {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-text:before, .save-text:after {
+            color: #c188ee;
+            margin: 0 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="content" id="results-page">
+    <div class="results">
+        <div class="results-header">
+            <h2>绝经相关症状指数-结果</h2>
+        </div>
+
+        <div class="score">
+            <div class="score-label">测试结果</div>
+            <div class="score-value" id="score-value">0</div>
+            <div class="score-severity" id="score-severity">-</div>
+        </div>
+
+        <div class="score-range">
+            评分总分≤6分为无症状；7-15分为轻度；16-30分为中度；&gt;30分为重度
+        </div>
+
+        <div class="recommendations">
+            <div class="recommendations-title">建议：</div>
+            <div class="recommendations-text" id="recommendations-text">
+                <!-- 这里的内容将由JavaScript动态替换 -->
+            </div>
+        </div>
+
+        <button class="clinic-btn" onclick="openMapPage()">专病门诊信息</button>
+
+        <!-- 添加关注公众号按钮 -->
+        <button class="follow-btn" onclick="openHealthLink()">线上咨询医生</button>
+
+        <div class="save-text">
+            您可截图保存至手机，定期检测自行做数据对比
+        </div>
+    </div>
+</div>
+
+<script>
+    // 从URL参数中获取得分
+    function getScoreFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return parseInt(urlParams.get('score') || '0');
+    }
+
+    // 更新结果页面
+    function updateResultPage(score) {
+        // 更新分数显示
+        document.getElementById('score-value').textContent = score;
+
+        // 更新严重程度和建议文本
+        let severity = '';
+        let recommendationText = '';
+
+        if (score <= 6) {
+            severity = '无症状';
+            recommendationText = `
+                <p>您目前的评估结果为<strong>正常</strong>，建议您通过以下方式保持健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）、保持每周规律运动3-5次（如步行、慢跑、游泳等）、避免熬夜。</li>
+                    <li>定期填写KMI自评表自测是否出现症状。</li>
+                    <li>若出现症状，请下方点击"专病门诊信息"按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (score >= 7 && score <= 15) {
+            severity = '轻度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>轻度</strong>，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）；保持每周规律运动3-5次（如步行、慢跑、游泳等）；避免熬夜。</li>
+                    <li>记录症状变化（如潮热频率、情绪波动等），定期填写KMI自评表。</li>
+                    <li>每6个月随访一次，若有症状加重，请点击下方"专病门诊信息"按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (score >= 16 && score <= 30) {
+            severity = '中度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>中度</strong>，症状已经影响到您的生活质量，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>请点击下方"专病门诊信息"按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每周记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>每3个月随访一次，若出现新发症状，请立即就诊。</li>
+                </ol>
+            `;
+        } else {
+            severity = '重度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>重度</strong>，症状已严重影响到您的正常生活。</p>
+                <ol>
+                    <li>请点击下方"专病门诊信息"按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每日记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>治疗后需每个月或遵医嘱复诊，若出现严重头痛、心悸等症状，请立即就诊。</li>
+                </ol>
+            `;
+        }
+
+        document.getElementById('score-severity').textContent = severity;
+        document.getElementById('recommendations-text').innerHTML = recommendationText;
+    }
+
+    // 打开地图页面
+    function openMapPage() {
+        const score = getScoreFromUrl();
+        window.location.href = `map.html?score=${score}`;
+    }
+
+    // 打开线上咨询医生链接
+    function openHealthLink() {
+        window.location.href = 'https://m.ddky.com/act/79736/index.html';
+    }
+
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+        const score = getScoreFromUrl();
+        updateResultPage(score);
+    });
+</script>
+</body>
+</html> 

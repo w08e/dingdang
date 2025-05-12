@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="x5-page-mode" content="app">
+    <meta name="viewport" http-equiv="content-security-policy"
+          content="width=device-width, initial-scale=1.0,accelerometer=*, gyroscope=*">
+    <title>医院查询</title>
+    <!-- 引入高德地图API，使用地图显示的key -->
+    <script type="text/javascript"
+            src="https://webapi.amap.com/maps?v=2.0&key=ada183fea19cb00bf5312c10822daacb&plugin=AMap.ToolBar,AMap.Scale,AMap.Geolocation,AMap.GeometryUtil"></script>
+    <!-- 引入高德地图UI组件库 -->
+    <script src="https://webapi.amap.com/ui/1.1/main.js?v=1.1.1"></script>
+    <style>
+        /* 修复水平滚动条问题 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f7f0ff;
+            background-image: linear-gradient(135deg, #f7f0ff 0%, #e6d3f9 100%);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: normal;
+            margin: 0;
+            text-align: center;
+            flex: 1;
+            color: white;
+        }
+
+        .content {
+            margin-top: 0;
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            background-color: white;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .map {
+            width: 100%;
+            height: 60vh;
+            background-color: #f7f0ff;
+        }
+
+        /* 地图页面头部 */
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #a367dc;
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-button svg {
+            margin-right: 5px;
+        }
+
+        .map-header h2 {
+            font-size: 16px;
+            margin: 0;
+            text-align: center;
+            flex: 1;
+        }
+
+        /* 确认位置按钮 */
+        .confirm-location-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #a367dc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        /* 搜索框样式 */
+        .search-container {
+            padding: 15px;
+            background-color: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .location-selectors {
+            display: flex;
+            gap: 10px;
+        }
+
+        .location-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .location-label {
+            font-size: 14px;
+            color: #666;
+            margin-right: 5px;
+        }
+
+        .location-select {
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .relocate-button {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: 1px solid #a367dc;
+            border-radius: 15px;
+            padding: 5px 10px;
+            color: #a367dc;
+            font-size: 12px;
+        }
+
+        .relocate-icon {
+            margin-right: 5px;
+            color: #a367dc;
+        }
+
+        .search-box {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        .search-button {
+            background-color: #a367dc;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        /* 医院列表样式 */
+        .clinics {
+            background-color: white;
+            min-height: 300px;
+        }
+
+        .clinic {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .clinic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .clinic-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+            flex: 1;
+        }
+
+        .clinic-distance {
+            color: #a367dc;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .clinic-distance svg {
+            margin-right: 5px;
+        }
+
+        .clinic-info {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .clinic-info:before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #a367dc;
+            border-radius: 50%;
+            margin-right: 8px;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .clinic-address {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+
+        .clinic-address-icon {
+            margin-right: 5px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .clinic-contact {
+            display: flex;
+            align-items: center;
+        }
+
+        .clinic-contact-icon {
+            margin-right: 5px;
+        }
+
+        .hospital-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            background-color: white;
+        }
+
+        .hospital-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hospital-distance {
+            color: #a367dc;
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        .hospital-address {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .view-on-map-btn {
+            background-color: #a367dc;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 5px 12px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(163, 103, 220, 0.3);
+            border-radius: 50%;
+            border-top-color: #a367dc;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #amap-container {
+            width: 100%;
+            height: 60vh;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+<!-- 地图页面 -->
+<div class="content" id="map-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="goBack(); return false;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>选择您的位置</h2>
+        <div style="width: 40px;"></div><!-- 空白占位，保持标题居中 -->
+    </div>
+
+    <div class="map-container">
+        <div id="amap-container" class="map"></div>
+        <button class="confirm-location-btn" onclick="confirmLocation()">确认位置</button>
+    </div>
+</div>
+
+<!-- 医院列表页面 -->
+<div class="content hidden" id="clinics-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="goBack(); return false;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>附近医院</h2>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <div class="search-container">
+        <div class="filter-container">
+            <div class="location-selectors">
+                <div class="location-group">
+                    <label class="location-label">省</label>
+                    <select id="province-select" class="location-select">
+                        <option value="">--请选择--</option>
+                        <!-- 省份选项会在JS中动态添加 -->
+                    </select>
+                </div>
+                <div class="location-group">
+                    <label class="location-label">市</label>
+                    <select id="city-select" class="location-select">
+                        <option value="">--请选择--</option>
+                        <!-- 城市选项会在JS中动态添加 -->
+                    </select>
+                </div>
+            </div>
+            <button class="relocate-button" onclick="relocateMe()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="relocate-icon">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8l4 4-4 4"></path>
+                    <path d="M8 12h8"></path>
+                </svg>
+                重新定位
+            </button>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="hospital-search" class="search-input" placeholder="搜索医院名称">
+            <button class="search-button" onclick="searchHospitals()">搜索</button>
+        </div>
+    </div>
+
+    <div class="clinics" id="hospitals-list">
+        <!-- 医院列表会在JS中动态生成 -->
+        <div class="loading-spinner" style="margin: 30px auto;"></div>
+    </div>
+</div>
+
+<script>
+    // 全局错误处理
+    window.onerror = function(message, source, lineno, colno, error) {
+        console.error('全局错误:', message, 'at', source, lineno, colno);
+        console.error('错误详情:', error);
+        return false;
+    };
+
+    // 全局未处理的Promise错误
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('未处理的Promise拒绝:', event.reason);
+    });
+
+    // 获取URL参数的函数
+    function getUrlParam(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    // 根据两点经纬度计算距离（单位：米）
+    function calculateDistance(point1, point2) {
+        // 使用高德地图计算两点之间的距离
+        try {
+            return AMap.GeometryUtil.distance(point1, point2);
+        } catch (e) {
+            console.error('计算距离出错:', e);
+            return 0;
+        }
+    }
+
+    // 全局变量
+    let currentPage = 'map'; // 当前页面，默认为地图页
+    let map = null; // 地图对象
+    let marker = null; // 地图标记对象
+    let userPosition = null; // 用户选择的位置
+    let currentProvince = ''; // 当前选择的省份
+    let currentCity = ''; // 当前选择的城市
+    let hospitalList = []; // 医院列表
+    let ipLocationAttempted = false; // 是否尝试过IP定位
+    let availableProvinces = new Set(); // 存储可用的省份
+    let availableCities = {}; // 存储可用的城市
+    const API_KEY = 'ada183fea19cb00bf5312c10822daacb'; // 高德地图API密钥
+    const API_KEY_web = '7da2a87f1537a1ee884ea153d98616ae'; // 高德地图API密钥
+
+    // 返回上一页
+    function goBack() {
+        // 获取得分参数
+        const score = getUrlParam('score');
+
+        // 如果有得分参数，说明是从result.html来的，返回result.html
+        if (score) {
+            window.location.href = `result.html?score=${score}`;
+        } else {
+            // 否则使用普通的返回
+            window.history.back();
+        }
+    }
+
+    // 处理省市名称，移除后缀并处理特殊情况
+    function formatRegionName(regionName) {
+        if (!regionName || typeof regionName !== 'string') {
+            return regionName;
+        }
+
+        // 直辖市不做处理
+        if (['北京市', '上海市', '天津市', '重庆市'].includes(regionName)) {
+            return regionName;
+        }
+
+        // 移除"省"和"市"后缀
+        if (regionName.endsWith('省')) {
+            return regionName.replace('省', '');
+        }
+
+        if (regionName.endsWith('市')) {
+            return regionName.replace('市', '');
+        }
+
+        return regionName;
+    }
+
+    // 通过IP地址获取位置信息
+    function getLocationByIP() {
+        ipLocationAttempted = true;
+        console.log('开始通过IP定位');
+
+        AMap.plugin('AMap.CitySearch', function() {
+            const citySearch = new AMap.CitySearch();
+            citySearch.getLocalCity(function(status, result) {
+                if (status === 'complete' && result.info === 'OK') {
+                    console.log('IP定位结果:', result);
+                    // 只有当当前省市为空时才更新
+                    if (!currentProvince) {
+                        currentProvince = result.province;
+                    }
+
+                    if (!currentCity) {
+                        currentCity = result.city;
+                    }
+
+                    console.log('通过IP定位到的省市:', currentProvince, currentCity);
+
+                    // 修复直辖市的处理逻辑
+                    if (['北京市', '上海市', '天津市', '重庆市'].includes(currentProvince)) {
+                        // 直辖市的province和city通常相同
+                        if (!currentCity) {
+                            currentCity = currentProvince;
+                        }
+                    }
+
+                    // 如果省份或城市包含"省"或"市"字样但不是直辖市，去除这些后缀
+                    if (currentProvince && !['北京市', '上海市', '天津市', '重庆市'].includes(currentProvince) && currentProvince.endsWith('省')) {
+                        currentProvince = currentProvince.replace('省', '');
+                    }
+
+                    if (currentCity && currentCity.endsWith('市')) {
+                        currentCity = currentCity.replace('市', '');
+                    }
+
+                    console.log('处理后的省市:', currentProvince, currentCity);
+
+                    // 如果当前在医院列表页面，刷新医院列表
+                    if (currentPage === 'clinics') {
+                        refreshHospitalList();
+                    }
+
+                    // 更新省市选择器
+                    setTimeout(function() {
+                        initProvinceCity();
+                    }, 500);
+                } else {
+                    console.error('IP定位失败:', result);
+                    // 尝试备用IP定位API
+                    fallbackIPLocation();
+                }
+            });
+        });
+    }
+
+    // 备用IP定位方法
+    function fallbackIPLocation() {
+        console.log('使用备用IP定位');
+        // 使用高德开放平台IP定位API
+        fetch(`https://restapi.amap.com/v3/ip?key=${API_KEY_web}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === '1') {
+                    console.log('备用IP定位结果:', data);
+
+                    if (!currentProvince && data.province) {
+                        currentProvince = formatRegionName(data.province);
+                    }
+
+                    if (!currentCity && data.city) {
+                        currentCity = formatRegionName(data.city);
+                    }
+
+                    // 处理直辖市
+                    if (['北京市', '上海市', '天津市', '重庆市'].includes(currentProvince)) {
+                        if (!currentCity) {
+                            currentCity = currentProvince;
+                        }
+                    }
+
+                    console.log('备用IP定位处理后的省市:', currentProvince, currentCity);
+
+                    // 如果当前在医院列表页面，刷新医院列表
+                    if (currentPage === 'clinics') {
+                        refreshHospitalList();
+                    }
+
+                    // 更新省市选择器
+                    setTimeout(function() {
+                        initProvinceCity();
+                    }, 500);
+                } else {
+                    console.error('备用IP定位失败:', data);
+                }
+            })
+            .catch(error => {
+                console.error('备用IP定位请求错误:', error);
+            });
+    }
+
+    // 加载省市选项
+    function loadProvinceAndCities() {
+        // 获取所有省份
+        fetch('/api/hospitals/provinces')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取省份失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(provinces => {
+                console.log('获取省份成功，数量:', provinces.length);
+                availableProvinces = new Set(provinces);
+                initProvinceCity();
+            })
+            .catch(error => {
+                console.error('获取省份失败:', error);
+                // 使用空的省份列表初始化
+                initProvinceCity();
+            });
+    }
+
+    // 根据省份加载城市
+    function loadCitiesByProvince(province) {
+        if (!province) {
+            return Promise.resolve([]);
+        }
+
+        return fetch(`/api/hospitals/cities?province=${encodeURIComponent(province)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取城市失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(cities => {
+                console.log(`获取${province}的城市成功，数量:`, cities.length);
+                availableCities[province] = new Set(cities);
+                return cities;
+            })
+            .catch(error => {
+                console.error(`获取${province}的城市失败:`, error);
+                return [];
+            });
+    }
+
+    // 从JSON文件获取医院数据
+    function loadHospitalData() {
+        console.log('从后端加载医院数据...');
+
+        // 前端不再直接加载JSON文件，改为加载省市数据
+        loadProvinceAndCities();
+    }
+
+    // 初始化地图
+    function initMap() {
+        map = new AMap.Map('amap-container', {
+            resizeEnable: true,
+            zoom: 12
+        });
+
+        // 添加地图控件
+        map.addControl(new AMap.ToolBar());
+        map.addControl(new AMap.Scale());
+
+        // 获取用户位置
+        const geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+            convert: true,
+            showButton: true,
+            buttonPosition: 'RB',
+            buttonOffset: new AMap.Pixel(10, 20),
+            showMarker: false, // 不使用默认marker，改用自己创建的marker
+            showCircle: true,
+            panToLocation: true,
+            zoomToAccuracy: true
+        });
+        map.addControl(geolocation);
+
+        geolocation.getCurrentPosition(function (status, result) {
+            if (status === 'complete') {
+                userPosition = [result.position.lng, result.position.lat];
+                console.log('定位成功:', userPosition);
+
+                // 添加标记
+                if (marker) {
+                    marker.setPosition(userPosition);
+                } else {
+                    marker = new AMap.Marker({
+                        position: userPosition,
+                        map: map,
+                        animation: 'AMAP_ANIMATION_BOUNCE',
+                        title: '当前位置'
+                    });
+                }
+
+                // 获取逆地理编码信息
+                getAddressFromLocation(userPosition);
+            } else {
+                console.error('定位失败', result);
+                alert('定位失败，请手动选择您的位置或选择您所在的省市');
+            }
+        });
+
+        // 点击地图改变位置
+        map.on('click', function (e) {
+            userPosition = [e.lnglat.lng, e.lnglat.lat];
+            console.log('选择位置:', userPosition);
+
+            // 添加或移动标记
+            if (marker) {
+                marker.setPosition(userPosition);
+            } else {
+                marker = new AMap.Marker({
+                    position: userPosition,
+                    map: map,
+                    animation: 'AMAP_ANIMATION_BOUNCE',
+                    title: '选择位置'
+                });
+            }
+
+            // 获取逆地理编码信息
+            getAddressFromLocation(userPosition);
+        });
+
+        // 加载医院数据
+        loadHospitalData();
+    }
+
+    // 从坐标获取地址信息
+    function getAddressFromLocation(location, callback) {
+        console.log('开始从坐标获取地址');
+        if (!location) {
+            console.error('获取地址失败：位置坐标为空');
+            if (!ipLocationAttempted) {
+                console.log('尝试使用IP定位作为备选方案');
+                getLocationByIP();
+                if (callback) setTimeout(callback, 1000);
+            } else if (callback) {
+                callback();
+            }
+            return;
+        }
+
+        try {
+            // 尝试使用高德REST API进行逆地理编码
+            const lng = location[0];
+            const lat = location[1];
+            console.log("经纬度:", lng, lat);
+
+            // 使用JSON格式返回结果
+            fetch(`https://restapi.amap.com/v3/geocode/regeo?key=${API_KEY_web}&location=${lng},${lat}&radius=1000&extensions=all&output=json`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('逆地理编码API响应:', data);
+
+                    if (data.status === '1' && data.regeocode) {
+                        console.log('逆地理编码结果:', data);
+
+                        try {
+                            const addressComponent = data.regeocode.addressComponent;
+
+                            // 检查返回的数据是否包含省市信息
+                            if (addressComponent) {
+                                if (addressComponent.province) {
+                                    currentProvince = formatRegionName(addressComponent.province);
+                                }
+
+                                if (addressComponent.city) {
+                                    // 处理空字符串或[]的情况
+                                    if (Array.isArray(addressComponent.city) && addressComponent.city.length === 0) {
+                                        // 如果是空数组，检查是否是直辖市
+                                        if (['北京市', '上海市', '天津市', '重庆市'].includes(addressComponent.province)) {
+                                            currentCity = formatRegionName(addressComponent.province);
+                                        }
+                                    } else {
+                                        currentCity = formatRegionName(addressComponent.city);
+                                    }
+                                }
+
+                                console.log('REST API获取的省市:', currentProvince, currentCity);
+                            } else {
+                                console.error('返回的地址组件结构不完整:', data.regeocode);
+                                throw new Error('地址组件数据不完整');
+                            }
+                        } catch (err) {
+                            console.error('解析地址组件错误:', err);
+                            throw err;
+                        }
+
+                        if (callback) callback();
+                    } else {
+                        console.error('REST API逆地理编码失败:', data);
+                        // 回退到JS API获取地址
+                        useJsApiGeocoder(location, callback);
+                    }
+                })
+                .catch(error => {
+                    console.error('REST API逆地理编码请求错误:', error);
+                    // 回退到JS API获取地址
+                    useJsApiGeocoder(location, callback);
+                });
+        } catch (error) {
+            console.error('处理逆地理编码过程中出错:', error);
+            // 回退到JS API获取地址
+            useJsApiGeocoder(location, callback);
+        }
+    }
+
+    // 使用高德JS API进行逆地理编码（作为备选方案）
+    function useJsApiGeocoder(location, callback) {
+        console.log('使用JS API进行逆地理编码');
+        AMap.plugin('AMap.Geocoder', function() {
+            const geocoder = new AMap.Geocoder();
+            geocoder.getAddress(location, function(status, result) {
+                if (status === 'complete' && result.info === 'OK') {
+                    const address = result.regeocode;
+                    console.log('JS API获取地址成功:', address);
+
+                    try {
+                        // 获取省市信息
+                        const addressComponent = address.addressComponent;
+                        if (addressComponent.province) {
+                            currentProvince = formatRegionName(addressComponent.province);
+                        }
+
+                        if (addressComponent.city) {
+                            // 处理空字符串或空数组的情况
+                            if (Array.isArray(addressComponent.city) && addressComponent.city.length === 0) {
+                                // 如果是空数组，检查是否是直辖市
+                                if (['北京市', '上海市', '天津市', '重庆市'].includes(addressComponent.province)) {
+                                    currentCity = formatRegionName(addressComponent.province);
+                                }
+                            } else {
+                                currentCity = formatRegionName(addressComponent.city);
+                            }
+                        }
+
+                        console.log('JS API获取的省市:', currentProvince, currentCity);
+
+                        // 如果省份为空，尝试从城市中提取
+                        if (!currentProvince && currentCity) {
+                            console.log('省份为空，尝试从城市提取');
+                            // 直辖市处理
+                            if (['北京市', '上海市', '天津市', '重庆市'].includes(currentCity)) {
+                                currentProvince = currentCity;
+                            }
+                        }
+
+                        // 处理直辖市
+                        if (['北京市', '上海市', '天津市', '重庆市'].includes(currentProvince)) {
+                            // 直辖市的province和city通常相同
+                            if (!currentCity) {
+                                currentCity = currentProvince;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('解析JS API地址组件错误:', err);
+                    }
+
+                    if (callback) callback();
+                } else {
+                    console.error('JS API获取地址失败:', status, result);
+                    // 如果获取地址失败，尝试使用IP定位
+                    if (!ipLocationAttempted) {
+                        console.log('尝试使用IP定位作为备选方案');
+                        getLocationByIP();
+                        if (callback) setTimeout(callback, 1000);
+                    } else if (callback) {
+                        callback();
+                    }
+                }
+            });
+        });
+    }
+
+    // 确认位置并进入医院列表页面
+    function confirmLocation() {
+        console.log('确认选择位置:', userPosition);
+
+        // 如果没有用户位置，尝试使用IP定位
+        if (!userPosition) {
+            console.log('位置未选择，尝试使用IP定位');
+            // 检查是否尝试过IP定位
+            if (!ipLocationAttempted) {
+                getLocationByIP();
+            }
+
+            // 验证是否至少有省份信息
+            setTimeout(function() {
+                if (!currentProvince) {
+                    alert('请先在地图上选择您的位置或等待自动定位完成');
+                    return;
+                }
+                // 进入医院列表页面
+                currentPage = 'clinics';
+                switchToHospitalList();
+            }, 1000);
+            return;
+        }
+
+        // 再次获取地址信息，确保省市信息正确
+        getAddressFromLocation(userPosition, function() {
+            console.log('确认位置 - 当前省份:', currentProvince, '当前城市:', currentCity);
+
+            // 检查是否获取到省份信息
+            if (!currentProvince) {
+                console.warn('警告：未能获取省份信息');
+
+                // 尝试通过IP获取位置
+                if (!ipLocationAttempted) {
+                    console.log('尝试通过IP定位获取省市');
+                    getLocationByIP();
+
+                    // 延迟切换到医院列表页面，等待IP定位完成
+                    setTimeout(function() {
+                        currentPage = 'clinics';
+                        switchToHospitalList();
+                    }, 1000);
+                    return;
+                }
+            }
+
+            // 切换到医院列表页面
+            currentPage = 'clinics';
+            switchToHospitalList();
+        });
+    }
+
+    // 切换到医院列表页面并加载数据
+    function switchToHospitalList() {
+        // 保存URL参数中的score，以便后续返回
+        const score = getUrlParam('score');
+
+        document.getElementById('map-page').classList.add('hidden');
+        document.getElementById('clinics-page').classList.remove('hidden');
+
+        // 初始化省市选择器
+        initProvinceCity();
+
+        // 获取医院数据
+        fetchHospitalsByRegion();
+
+        // 调试输出
+        console.log('医院列表页面加载，使用以下参数:');
+        console.log('- 用户位置:', userPosition);
+        console.log('- 省份:', currentProvince);
+        console.log('- 城市:', currentCity);
+        console.log('- 医院数据条数:', hospitalList.length);
+
+        // 如果有score参数，更新页面URL，便于后续返回
+        if (score) {
+            // 使用history.replaceState更新URL，不导致页面刷新
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('score', score);
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+
+    // 返回地图页面
+    function returnToMap() {
+        document.getElementById('clinics-page').classList.add('hidden');
+        document.getElementById('map-page').classList.remove('hidden');
+
+        // 刷新地图大小
+        if (map) {
+            setTimeout(function () {
+                map.resize();
+            }, 100);
+        }
+    }
+
+    // 重新定位
+    function relocateMe() {
+        returnToMap();
+    }
+
+    // 初始化省市选择器
+    function initProvinceCity() {
+        const provinceSelect = document.getElementById('province-select');
+        const citySelect = document.getElementById('city-select');
+
+        // 清空选择器
+        provinceSelect.innerHTML = '<option value="">--请选择--</option>';
+        citySelect.innerHTML = '<option value="">--请选择--</option>';
+
+        // 添加省份选项
+        Array.from(availableProvinces).sort().forEach(province => {
+            const option = document.createElement('option');
+            option.value = province;
+            option.textContent = province;
+            provinceSelect.appendChild(option);
+        });
+
+        // 设置当前省份
+        if (currentProvince) {
+            // 查找匹配的选项
+            const options = provinceSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === currentProvince) {
+                    provinceSelect.selectedIndex = i;
+                    updateCities();
+                    break;
+                }
+            }
+        }
+
+        // 省份变更事件
+        provinceSelect.addEventListener('change', function() {
+            currentProvince = this.value;
+            updateCities();
+            fetchHospitalsByRegion();
+        });
+
+        // 城市变更事件
+        citySelect.addEventListener('change', function() {
+            currentCity = this.value;
+            fetchHospitalsByRegion();
+        });
+    }
+
+    // 根据选择的省份更新城市选择器
+    function updateCities() {
+        const provinceSelect = document.getElementById('province-select');
+        const citySelect = document.getElementById('city-select');
+
+        // 清空城市选择器
+        citySelect.innerHTML = '<option value="">--请选择--</option>';
+
+        // 获取选择的省份
+        const provinceName = provinceSelect.value;
+        if (!provinceName) return;
+
+        // 检查是否已经有该省份的城市缓存
+        if (availableCities[provinceName]) {
+            // 使用缓存的城市
+            Array.from(availableCities[provinceName]).sort().forEach(city => {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                citySelect.appendChild(option);
+            });
+
+            // 如果有当前城市，选中它
+            if (currentCity) {
+                const options = citySelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === currentCity) {
+                        citySelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // 从服务器加载该省份的城市
+            loadCitiesByProvince(provinceName).then(cities => {
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+
+                // 如果有当前城市，选中它
+                if (currentCity) {
+                    const options = citySelect.options;
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value === currentCity) {
+                            citySelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // 根据省市获取医院数据
+    function fetchHospitalsByRegion() {
+        // 显示加载状态
+        document.getElementById('hospitals-list').innerHTML = '<div class="loading-spinner" style="margin: 30px auto;"></div>';
+
+        // 构建查询参数
+        const requestData = {
+            province: currentProvince,
+            city: currentCity
+        };
+
+        // 如果有用户位置，添加位置参数
+        if (userPosition) {
+            requestData.longitude = userPosition[0];
+            requestData.latitude = userPosition[1];
+        }
+
+        console.log('请求参数:', requestData);
+
+        // 调用后端API
+        fetch('/api/hospitals/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取医院数据成功:', data);
+
+                if (data.message) {
+                    // 显示错误信息
+                    document.getElementById('hospitals-list').innerHTML =
+                        `<p style="text-align: center; color: #666; padding: 20px;">${data.message}</p>`;
+                    return;
+                }
+
+                if (!data.hospitals || data.hospitals.length === 0) {
+                    document.getElementById('hospitals-list').innerHTML =
+                        '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请尝试选择其他省市或重新定位。</p>';
+                    return;
+                }
+
+                // 更新全局变量
+                hospitalList = data.hospitals;
+                displayHospitals(hospitalList);
+            })
+            .catch(error => {
+                console.error('获取医院数据失败:', error);
+                document.getElementById('hospitals-list').innerHTML =
+                    '<p style="text-align: center; color: #666; padding: 20px;">获取医院数据失败，请刷新页面重试。</p>';
+            });
+    }
+
+    // 搜索医院的函数
+    function searchHospitals() {
+        const searchInput = document.getElementById('hospital-search');
+        const keyword = searchInput.value.trim();
+
+        if (!keyword && !currentProvince && !currentCity) {
+            alert('请输入搜索关键词或选择省市');
+            return;
+        }
+
+        // 显示加载状态
+        document.getElementById('hospitals-list').innerHTML = '<div class="loading-spinner" style="margin: 30px auto;"></div>';
+
+        // 构建查询参数
+        const requestData = {
+            province: currentProvince,
+            city: currentCity,
+            keyword: keyword
+        };
+
+        // 如果有用户位置，添加位置参数
+        if (userPosition) {
+            requestData.longitude = userPosition[0];
+            requestData.latitude = userPosition[1];
+        }
+
+        // 调用后端API
+        fetch('/api/hospitals/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('搜索医院结果:', data);
+
+                if (data.message) {
+                    // 显示错误信息
+                    document.getElementById('hospitals-list').innerHTML =
+                        `<p style="text-align: center; color: #666; padding: 20px;">${data.message}</p>`;
+                    return;
+                }
+
+                if (!data.hospitals || data.hospitals.length === 0) {
+                    document.getElementById('hospitals-list').innerHTML =
+                        '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请尝试其他关键词或选择其他省市。</p>';
+                    return;
+                }
+
+                // 更新全局变量
+                hospitalList = data.hospitals;
+                displayHospitals(hospitalList);
+            })
+            .catch(error => {
+                console.error('搜索医院失败:', error);
+                document.getElementById('hospitals-list').innerHTML =
+                    '<p style="text-align: center; color: #666; padding: 20px;">搜索失败，请稍后重试。</p>';
+            });
+    }
+
+    // 显示医院列表
+    function displayHospitals(hospitals) {
+        const list = document.getElementById('hospitals-list');
+        list.innerHTML = '';
+
+        if (hospitals.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请尝试其他关键词或选择其他省市。</p>';
+            return;
+        }
+
+        hospitals.forEach(hospital => {
+            const item = document.createElement('div');
+            item.className = 'hospital-item';
+
+            // 医院名称、地址和距离的HTML构建
+            let distanceText = '';
+            if (hospital.distance) {
+                // 格式化距离显示
+                let formattedDistance = '';
+                const distance = parseFloat(hospital.distance);
+
+                if (distance >= 1000) {
+                    formattedDistance = (distance / 1000).toFixed(1) + 'km';
+                } else {
+                    formattedDistance = Math.round(distance) + 'm';
+                }
+
+                // 如果是精确位置，添加标记
+                if (hospital.hasAccurateLocation) {
+                    distanceText = `<span class="hospital-distance">${formattedDistance}</span>`;
+                } else {
+                    distanceText = `<span class="hospital-distance" style="color: #999;">${formattedDistance} (估算)</span>`;
+                }
+            }
+
+            // 构建医院信息HTML，使用标准化字段名
+            const hospitalName = hospital.name || '未知医院';
+            const hospitalAddress = hospital.address || '地址信息未提供';
+            const district = hospital.district || '';
+
+            // 构建详细地址
+            let fullAddress = '';
+            if (district && district !== ' ') fullAddress += district;
+            if (hospitalAddress) {
+                if (fullAddress) fullAddress += ' - ';
+                fullAddress += hospitalAddress;
+            }
+
+            item.innerHTML = `
+                <div class="hospital-name">${hospitalName} ${distanceText}</div>
+                <div class="hospital-address">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="clinic-address-icon">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                    ${fullAddress || '地址信息未提供'}
+                    </div>
+                ${hospital.clinicName ? `<div class="clinic-info">门诊名称: ${hospital.clinicName}</div>` : ''}
+                ${hospital.clinicTime ? `<div class="clinic-info">门诊时间: ${hospital.clinicTime}</div>` : ''}
+                <button class="view-on-map-btn">在地图上查看</button>
+            `;
+
+            // 添加"在地图上查看"按钮的点击事件
+            const viewOnMapBtn = item.querySelector('.view-on-map-btn');
+            viewOnMapBtn.addEventListener('click', () => {
+                // 检查医院是否有经纬度信息
+                if (hospital.longitude && hospital.latitude) {
+                    // 1. Switch view to the map page
+                    returnToMap();
+
+                    const position = [hospital.longitude, hospital.latitude];
+
+                    // 2. Delay map operations to ensure map is visible and resized
+                    setTimeout(() => {
+                        if (map) { // Defensive check for map object
+                            map.setCenter(position);
+                            map.setZoom(15);
+
+                            // Clear previous markers (if any from other hospital views or user's selection)
+                            map.clearMap();
+
+                            // Add new marker for the selected hospital
+                            const hospitalMarker = new AMap.Marker({
+                                position: position,
+                                title: hospital.name,
+                                map: map
+                            });
+
+                            // Create and open InfoWindow
+                            const infoWindow = new AMap.InfoWindow({
+                                content: `
+                                    <div style="padding: 10px; min-width: 200px;">
+                                        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 16px;">${hospital.name}</h3>
+                                        <p style="margin: 0; color: #666; font-size: 14px;">${hospital.address || '地址信息未提供'}</p>
+                                        ${hospital.clinicName ? `<p style="margin: 5px 0; color: #666; font-size: 14px;">门诊名称: ${hospital.clinicName}</p>` : ''}
+                                        ${hospital.clinicTime ? `<p style="margin: 5px 0; color: #666; font-size: 14px;">门诊时间: ${hospital.clinicTime}</p>` : ''}
+                                    </div>
+                                `,
+                                offset: new AMap.Pixel(0, -30),
+                                closeWhenClickMap: true,
+                                autoMove: true
+                            });
+
+                            hospitalMarker.on('click', () => {
+                                infoWindow.open(map, hospitalMarker.getPosition());
+                            });
+
+                            // Open info window immediately
+                            infoWindow.open(map, position);
+
+                            // 3. Scroll the map into view
+                            const mapElement = document.getElementById('amap-container');
+                            if (mapElement) {
+                                mapElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+
+                        } else {
+                            console.error("Map object not available for 'View on Map'");
+                        }
+                    }, 200); // Delay slightly longer than map.resize in returnToMap (100ms)
+
+                } else {
+                    alert('该医院没有地址信息，无法在地图上显示。');
+                }
+            });
+
+            list.appendChild(item);
+        });
+    }
+
+    // 刷新医院列表
+    function refreshHospitalList() {
+        console.log('刷新医院列表，当前省市:', currentProvince, currentCity);
+        fetchHospitalsByRegion();
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        // 初始化地图
+        initMap();
+
+        // 搜索框回车事件
+        const searchInput = document.getElementById('hospital-search');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    searchHospitals();
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

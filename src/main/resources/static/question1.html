@@ -1,0 +1,2646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="x5-page-mode" content="app">
+    <meta name="viewport" http-equiv="content-security-policy"
+          content="width=device-width, initial-scale=1.0,accelerometer=*, gyroscope=*">
+    <title>问卷调查</title>
+    <!-- 引入高德地图API，使用地图显示的key -->
+    <script type="text/javascript"
+            src="https://webapi.amap.com/maps?v=2.0&key=ada183fea19cb00bf5312c10822daacb&plugin=AMap.ToolBar,AMap.Scale,AMap.Geolocation"></script>
+    <!-- 引入高德地图UI组件库 -->
+    <script src="https://webapi.amap.com/ui/1.1/main.js?v=1.1.1"></script>
+    <!-- 引入微信JS-SDK -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <style>
+        /* 修复水平滚动条问题 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f7f0ff;
+            background-image: linear-gradient(135deg, #f7f0ff 0%, #e6d3f9 100%);
+        }
+
+        .questionnaire-title h2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* 控制文字与图标间距 */
+        }
+
+        .title-icon {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: normal;
+            margin: 0;
+            text-align: center;
+            flex: 1;
+            color: white;
+        }
+
+        .content {
+            margin-top: 20px;
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            border-left: 16px solid #DD9EF4;
+            border-right: 16px solid #DD9EF4;
+            box-sizing: border-box;
+        }
+
+        .questionnaire {
+            background-color: white;
+            padding: 25px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+            box-sizing: border-box;
+        }
+
+        .questionnaire-header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #a367dc;
+            padding: 3px;
+            box-shadow: 0 0 15px rgba(163, 103, 220, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .questionnaire-header h2 {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .questionnaire-header p {
+            font-size: 14px;
+            color: #8a8a8a;
+            margin: 5px 0;
+        }
+
+        .question {
+            margin-bottom: 25px;
+            border-bottom: 1px solid #f5f0ff;
+            padding-bottom: 20px;
+        }
+
+        .question-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #a367dc;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .question-text {
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: inline-block;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .options {
+            margin-left: 40px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 12px 15px;
+            background-color: white;
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .option:hover {
+            background-color: #f9f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+        }
+
+        .option-radio {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #e6d3f9;
+            margin-right: 15px;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .option.selected .option-radio {
+            background-color: #a367dc;
+            border-color: #a367dc;
+        }
+
+        .option-text {
+            font-size: 15px;
+            color: #555;
+        }
+
+        .submit-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 25px auto 10px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .submit-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .results {
+            background-color: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .results-header {
+            margin-bottom: 20px;
+        }
+
+        .results-header img {
+            width: 80px;
+            height: 80px;
+            /*border-radius: 50%;*/
+            /*border: 3px solid #a367dc;*/
+            padding: 3px;
+            margin-bottom: 15px;
+            /*box-shadow: 0 0 15px rgba(163, 103, 220, 0.3);*/
+        }
+
+        .results-header h2 {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .score {
+            margin: 30px 0;
+            background: linear-gradient(135deg, #f9f4ff, #f5eeff);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(163, 103, 220, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease-out forwards;
+            border: 1px solid rgba(163, 103, 220, 0.1);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-label {
+            font-size: 16px;
+            display: inline-block;
+            background-color: white;
+            color: #8a57c2;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(138, 87, 194, 0.15);
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 1px;
+        }
+
+        .score-value {
+            font-size: 70px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #9356cc, #c188ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px auto 15px;
+            position: relative;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            animation: pulseEffect 1.5s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes pulseEffect {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .score-value:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, #a367dc, transparent);
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .score-severity {
+            display: inline-block;
+            background: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            padding: 10px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 25px auto 0;
+            border-radius: 30px;
+            box-shadow: 0 8px 20px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-severity:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 100%;
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .score-range {
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            line-height: 1.6;
+            background-color: white;
+            padding: 18px;
+            border-radius: 16px;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #f0e5ff;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.5s;
+        }
+
+        .score-range:before {
+            content: "ℹ️";
+            margin-right: 8px;
+        }
+
+        .recommendations {
+            background-color: #f7f0ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: left;
+            border: 1px dashed #e6d3f9;
+        }
+
+        .recommendations-title {
+            color: #a367dc;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendations-title:before {
+            content: "♥";
+            margin-right: 8px;
+            color: #c188ee;
+        }
+
+        .recommendations-text {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .clinic-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .clinic-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .save-text {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-text:before, .save-text:after {
+            /*content: "✿";*/
+            color: #c188ee;
+            margin: 0 8px;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            background-color: white;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .map {
+            width: 100%;
+            height: 60vh; /* 从70vh调整为60vh，减小高度 */
+            background-color: #f7f0ff;
+        }
+
+        /* 地图页面头部 */
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+        }
+
+        .map-header .back-button {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .map-header .back-button svg {
+            margin-right: 5px;
+        }
+
+        .map-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: normal;
+        }
+
+        .confirm-location-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 12px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 15px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .confirm-location-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .clinics {
+            background-color: white;
+            border-radius: 20px;
+            padding: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .clinic-name {
+            font-size: 18px;
+            color: #a367dc;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .clinic-address, .clinic-distance, .clinic-department, .clinic-hours {
+            font-size: 14px;
+            color: #666;
+            margin: 6px 0;
+            padding-left: 5px;
+            border-left: 2px solid #e6d3f9;
+        }
+
+        .clinic-distance {
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 搜索和选择控件样式 */
+        .search-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+        }
+
+        .search-box {
+            background-color: white;
+            border-radius: 30px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            padding: 8px 10px;
+            color: #555;
+        }
+
+        .search-button {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            margin-left: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .search-button:active {
+            transform: scale(0.95);
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+            flex-wrap: wrap;
+        }
+
+        .location-selectors {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .location-group {
+            margin-right: 15px;
+            margin-bottom: 5px;
+            position: relative;
+        }
+
+        .location-group:after {
+            content: "✿";
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #c188ee;
+            font-size: 12px;
+        }
+
+        .location-group:last-child:after {
+            display: none;
+        }
+
+        .location-label {
+            color: #a367dc;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+
+        .location-select {
+            border: none;
+            color: #a367dc;
+            background: transparent;
+            font-size: 15px;
+            appearance: none;
+            padding-right: 15px;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23a367dc" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right center;
+            max-width: 120px;
+            text-overflow: ellipsis;
+            -webkit-appearance: none;
+        }
+
+        .relocate-button {
+            display: flex;
+            align-items: center;
+            background: #f7f0ff;
+            border: 1px solid #e6d3f9;
+            color: #a367dc;
+            border-radius: 20px;
+            padding: 8px 10px;
+            white-space: nowrap;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-left: auto;
+            font-size: 13px;
+        }
+
+        .relocate-button:active {
+            background-color: #a367dc;
+            color: white;
+        }
+
+        .relocate-icon {
+            margin-right: 5px;
+            stroke: #a367dc;
+        }
+
+        .relocate-button:active .relocate-icon {
+            stroke: white;
+        }
+
+        /* 母亲节装饰 */
+        .mother-day-decor {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23a367dc" d="M50,10 C60,25 80,25 90,15 C90,40 70,60 50,70 C30,60 10,40 10,15 C20,25 40,25 50,10 Z"/></svg>');
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.5;
+            z-index: -1;
+        }
+
+        /* 移动端适配样式 */
+        @media screen and (max-width: 480px) {
+            .filter-container {
+                padding: 10px;
+            }
+
+            .location-selectors {
+                flex-wrap: nowrap;
+                margin-right: 8px;
+                width: auto;
+                margin-bottom: 0;
+            }
+
+            .location-group {
+                margin-right: 8px;
+            }
+
+            .location-group:after {
+                right: -5px;
+            }
+
+            .location-select {
+                max-width: 80px;
+                font-size: 13px;
+            }
+
+            .relocate-button {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .relocate-button .relocate-icon {
+                width: 16px;
+                height: 16px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+            }
+
+            .clinic-name {
+                font-size: 16px;
+            }
+
+            .clinic-address, .clinic-distance, .clinic-department, .clinic-hours {
+                font-size: 13px;
+            }
+
+            .questionnaire-header h2,
+            .results-header h2 {
+                font-size: 20px;
+            }
+
+            .score {
+                margin: 20px 0;
+                padding: 20px 10px;
+                border-radius: 15px;
+            }
+
+            .score-label {
+                font-size: 13px;
+                padding: 4px 12px;
+                margin-bottom: 15px;
+            }
+
+            .score-value {
+                font-size: 46px;
+                margin: 15px auto 5px;
+            }
+
+            .score-value:after {
+                width: 60px;
+                height: 2px;
+                bottom: -8px;
+            }
+
+            .score-severity {
+                font-size: 16px;
+                padding: 6px 20px;
+                margin: 20px auto 0;
+            }
+
+            .score-range {
+                font-size: 13px;
+                padding: 12px 10px;
+                margin-top: 20px;
+                line-height: 1.5;
+            }
+
+            .score-range:before {
+                font-size: 11px;
+                top: -8px;
+                left: 15px;
+            }
+        }
+
+        /* 加载动画 */
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(163, 103, 220, 0.2);
+            border-radius: 50%;
+            border-top-color: #a367dc;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        /* 结果内容的淡入动画 */
+        .results-content {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards;
+            animation-delay: 0.3s;
+        }
+
+        #amap-container {
+            width: 100%;
+            height: 60vh; /* 与上面保持一致 */
+            position: relative;
+            z-index: 1;
+        }
+
+        .clinics {
+            margin-top: 25px;
+        }
+
+        .clinic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .clinic-name {
+            font-size: 17px;
+            font-weight: bold;
+            color: #8a57c2;
+            margin: 0;
+        }
+
+        .clinic-distance {
+            color: #a367dc;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            background: #f9f4ff;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .clinic-distance svg {
+            margin-right: 5px;
+            stroke: #a367dc;
+        }
+
+        .clinic-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .clinic-address, .clinic-department, .clinic-hours {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .clinic-address svg, .clinic-department svg, .clinic-hours svg {
+            margin-right: 8px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            stroke: #a367dc;
+        }
+
+        .call-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            padding: 10px;
+            border-radius: 30px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.2);
+        }
+
+        .call-button:active {
+            transform: scale(0.97);
+        }
+
+        .call-button svg {
+            margin-right: 8px;
+        }
+
+        /* 公众号按钮样式 */
+        .follow-btn {
+            background-color: #fcf0ff;
+            color: #a367dc;
+            font-size: 16px;
+            padding: 12px;
+            border: 2px solid #a367dc;
+            border-radius: 30px;
+            width: 90%;
+            margin: 10px auto 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.2);
+            transition: all 0.3s;
+        }
+
+        .follow-btn:active {
+            transform: translateY(2px);
+            background-color: #f2e6ff;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.2);
+        }
+
+        /* 二维码弹窗样式 */
+        .qrcode-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .qrcode-container {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .qrcode-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #a367dc;
+            cursor: pointer;
+        }
+
+        .qrcode-image {
+            width: 100%;
+            max-width: 250px;
+            margin: 10px auto;
+        }
+
+        .qrcode-text {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* banner样式 */
+        .banner-header {
+            text-align: center;
+            margin: -25px -25px 30px -25px; /* 负margin延伸至questionnaire边缘 */
+            background: linear-gradient(135deg, #DD9EF4, #DD9EF4);
+            padding: 25px 15px;
+            border-radius: 20px 20px 0 0; /* 只保留上方圆角 */
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.3);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: -21px;
+        }
+
+        .banner-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: 0;
+            line-height: 1.4;
+            margin-top: 28px;
+        }
+
+        /* 顶部图片样式 */
+
+        /* 标题样式 */
+        .questionnaire-title {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .questionnaire-title h2 {
+            font-size: 22px;
+            margin: 0 0 5px 0;
+            color: #8a57c2;
+            font-weight: bold;
+        }
+
+        .questionnaire-title p {
+            font-size: 12px;
+            color: #8a8a8a;
+            margin: 5px 0 15px 0;
+        }
+
+        /* 修改地图容器样式，减小高度 */
+        .map {
+            width: 100%;
+            height: 60vh; /* 从70vh调整为60vh，减小高度 */
+            background-color: #f7f0ff;
+        }
+
+        #amap-container {
+            width: 100%;
+            height: 60vh; /* 与上面保持一致 */
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 修改地图页和医院列表页面的content样式，清除边框 */
+        .content-no-border {
+            margin-top: 0;
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            /*border-left: none;*/
+            /*border-right: none;*/
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="banner-header" id="banner-header">
+    <h1 class="banner-text">护龄无界，悦见新生</h1>
+</div>
+<!-- 问卷页面 -->
+<div class="content content-no-border" id="questionnaire-page">
+    <div class="questionnaire">
+        <!-- 移除banner -->
+
+        <!-- 问卷标题 -->
+        <div class="questionnaire-title">
+            <h2>绝经相关症状指数 <img src="图书.png" class="title-icon"></h2>
+            <p>测测您的绝经期相关症状指数(Kupperman改良评分)</p>
+        </div>
+
+        <!-- 添加母亲节装饰 -->
+        <div class="mother-day-decor"></div>
+
+        <div class="question">
+            <span class="question-number">1</span>
+            <span class="question-text">潮热、出汗 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. &lt;3次/天 </span>
+                </div>
+                <div class="option" data-score="8">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 3~9次/天 </span>
+                </div>
+                <div class="option" data-score="12">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. ≥10次/天 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">2</span>
+            <span class="question-text">感觉异常 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 与天气有关 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 平常有冷、热、麻、痛不适 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 冷、热、麻感显著 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">3</span>
+            <span class="question-text">失眠 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，安眠药有效 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 影响工作和生活 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">4</span>
+            <span class="question-text">情绪易激动 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能控制 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 经常，不能自控 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">5</span>
+            <span class="question-text">抑郁忧虑 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，影响正常活动 </span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 经常，不能自控或需药物治疗 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">6</span>
+            <span class="question-text">眩晕</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔</span>
+                </div>
+                <div class="option" data-score="8">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响日常生活</span>
+                </div>
+                <div class="option" data-score="12">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 影响日常生活</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">7</span>
+            <span class="question-text">疲劳</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 上四楼困难 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 日常生活受限 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">8</span>
+            <span class="question-text">骨、关节痛</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响功能 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 功能障碍</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">9</span>
+            <span class="question-text">头痛</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能忍受 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">10</span>
+            <span class="question-text">心悸</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响正常生活 </span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+        <div class="question">
+            <span class="question-number">11</span>
+            <span class="question-text">皮肤蚁走感</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能忍受 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">12</span>
+            <span class="question-text">性生活状况</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 正常</span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 性欲下降</span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 性交痛</span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 性欲丧失</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">13</span>
+            <span class="question-text">泌尿系统感染</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. ＞3年/次，能自愈</span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. ＞3年/次，需服药</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="submit-btn">提交</button>
+    </div>
+</div>
+
+<!-- 结果页面 -->
+<div class="content hidden" id="results-page">
+    <div class="results">
+        <!-- 恢复头像样式 -->
+        <div class="results-header">
+            <img src="图书.png" class="title-icon">
+            <h2>绝经相关症状指数-结果</h2>
+        </div>
+
+        <div class="score">
+            <div class="score-label">测试结果</div>
+            <div class="score-value">31</div>
+            <div class="score-severity">重度</div>
+        </div>
+
+        <div class="score-range">
+            评分总分≤6分为无症状；7-15分为轻度；16-30分为中度；&gt;30分为重度
+        </div>
+
+        <div class="recommendations">
+            <div class="recommendations-title">建议：</div>
+            <div class="recommendations-text">
+                <!-- 这里的内容将由JavaScript动态替换 -->
+            </div>
+        </div>
+
+        <button class="clinic-btn" onclick="showMapPage()">专病门诊信息</button>
+
+        <!-- 添加关注公众号按钮 -->
+        <button class="follow-btn" onclick="openHealthLink()">点击关注更年期健康叮小护</button>
+
+        <div class="save-text">
+            您可截图保存至手机，定期检测自行做数据对比
+        </div>
+    </div>
+</div>
+
+<!-- 地图页面 -->
+<div class="content content-no-border hidden" id="map-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="returnToResults()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>选择您的位置</h2>
+        <div style="width: 40px;"></div><!-- 空白占位，保持标题居中 -->
+    </div>
+
+    <div class="map-container">
+        <div id="amap-container" class="map"></div>
+        <button class="confirm-location-btn" onclick="confirmLocation()">确认位置</button>
+    </div>
+</div>
+
+<!-- 医院列表页面 -->
+<div class="content content-no-border hidden" id="clinics-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="returnToMap()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>附近医院</h2>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <div class="search-container">
+        <div class="filter-container">
+            <div class="location-selectors">
+                <div class="location-group">
+                    <label class="location-label">省</label>
+                    <select id="province-select" class="location-select" onchange="updateCities()">
+                        <option value="">--请选择--</option>
+                        <!-- 省份选项会在JS中动态添加 -->
+                    </select>
+                </div>
+                <div class="location-group">
+                    <label class="location-label">市</label>
+                    <select id="city-select" class="location-select" onchange="updateHospitals()">
+                        <option value="">--请选择--</option>
+                        <!-- 城市选项会在JS中动态添加 -->
+                    </select>
+                </div>
+            </div>
+            <button class="relocate-button" onclick="relocateMe()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="relocate-icon">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8l4 4-4 4"></path>
+                    <path d="M8 12h8"></path>
+                </svg>
+                重新定位
+            </button>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="hospital-search" class="search-input" placeholder="搜索医院名称">
+            <button class="search-button" onclick="searchHospitals()">搜索</button>
+        </div>
+    </div>
+
+    <div class="clinics" id="hospitals-list">
+        <!-- 医院列表会在JS中动态生成 -->
+        <div class="loading-spinner" style="margin: 30px auto;"></div>
+    </div>
+</div>
+
+<!-- 公众号二维码弹窗 -->
+<div id="qrcode-modal" class="qrcode-modal" style="display: none;">
+    <div class="qrcode-container">
+        <div class="qrcode-close" onclick="hideQRCode()">×</div>
+        <img src="公众号.png" alt="微信公众号二维码" class="qrcode-image">
+        <div class="qrcode-text">长按识别二维码关注公众号</div>
+    </div>
+</div>
+
+<script>
+    // 全局变量
+    let userPosition = null;
+    let totalScore = 0; // 总分变量
+    let map = null; // 高德地图实例
+    let marker = null; // 位置标记
+    let hospitals = []; // 医院数据
+    let currentProvince = ''; // 当前选择的省份
+    let currentCity = ''; // 当前选择的城市
+
+    // 省市数据
+    const provinces = [
+        {code: '11', name: '北京市'},
+        {code: '12', name: '天津市'},
+        {code: '13', name: '河北省'},
+        {code: '14', name: '山西省'},
+        {code: '15', name: '内蒙古自治区'},
+        {code: '21', name: '辽宁省'},
+        {code: '22', name: '吉林省'},
+        {code: '23', name: '黑龙江省'},
+        {code: '31', name: '上海市'},
+        {code: '32', name: '江苏省'},
+        {code: '33', name: '浙江省'},
+        {code: '34', name: '安徽省'},
+        {code: '35', name: '福建省'},
+        {code: '36', name: '江西省'},
+        {code: '37', name: '山东省'},
+        {code: '41', name: '河南省'},
+        {code: '42', name: '湖北省'},
+        {code: '43', name: '湖南省'},
+        {code: '44', name: '广东省'},
+        {code: '45', name: '广西壮族自治区'},
+        {code: '46', name: '海南省'},
+        {code: '50', name: '重庆市'},
+        {code: '51', name: '四川省'},
+        {code: '52', name: '贵州省'},
+        {code: '53', name: '云南省'},
+        {code: '54', name: '西藏自治区'},
+        {code: '61', name: '陕西省'},
+        {code: '62', name: '甘肃省'},
+        {code: '63', name: '青海省'},
+        {code: '64', name: '宁夏回族自治区'},
+        {code: '65', name: '新疆维吾尔自治区'},
+        {code: '71', name: '台湾省'},
+        {code: '81', name: '香港特别行政区'},
+        {code: '82', name: '澳门特别行政区'}
+    ];
+
+    // 城市数据 - 简化版，实际应用中可能需要更完整的数据
+    const cities = {
+        '11': [{code: '1101', name: '北京市'}],
+        '12': [{code: '1201', name: '天津市'}],
+        '13': [
+            {code: '1301', name: '石家庄市'},
+            {code: '1302', name: '唐山市'},
+            {code: '1303', name: '秦皇岛市'},
+            {code: '1304', name: '邯郸市'},
+            {code: '1305', name: '邢台市'},
+            {code: '1306', name: '保定市'},
+            {code: '1307', name: '张家口市'},
+            {code: '1308', name: '承德市'},
+            {code: '1309', name: '沧州市'},
+            {code: '1310', name: '廊坊市'},
+            {code: '1311', name: '衡水市'}
+        ],
+        '14': [
+            {code: '1401', name: '太原市'},
+            {code: '1402', name: '大同市'},
+            {code: '1403', name: '阳泉市'},
+            {code: '1404', name: '长治市'},
+            {code: '1405', name: '晋城市'},
+            {code: '1406', name: '朔州市'},
+            {code: '1407', name: '晋中市'},
+            {code: '1408', name: '运城市'},
+            {code: '1409', name: '忻州市'},
+            {code: '1410', name: '临汾市'},
+            {code: '1411', name: '吕梁市'}
+        ],
+        '15': [{code: '1501', name: '呼和浩特市'},
+            {code: '1502', name: '包头市'},
+            {code: '1503', name: '乌海市'},
+            {code: '1504', name: '赤峰市'},
+            {code: '1505', name: '通辽市'},
+            {code: '1506', name: '鄂尔多斯市'},
+            {code: '1507', name: '巴彦淖尔市'},
+            {code: '1508', name: '乌兰察布市'},
+            {code: '1509', name: '兴安盟'},
+            {code: '1522', name: '锡林郭勒盟'},
+            {code: '1525', name: '阿拉善盟'}
+        ],
+        '21': [
+            {code: '2101', name: '沈阳市'},
+            {code: '2102', name: '大连市'},
+            {code: '2103', name: '鞍山市'},
+            {code: '2104', name: '抚顺市'},
+            {code: '2105', name: '本溪市'},
+            {code: '2106', name: '丹东市'},
+            {code: '2107', name: '锦州市'},
+            {code: '2108', name: '营口市'},
+            {code: '2109', name: '阜新市'},
+            {code: '2110', name: '辽阳市'},
+            {code: '2111', name: '盘锦市'},
+            {code: '2112', name: '铁岭市'},
+            {code: '2113', name: '朝阳市'},
+            {code: '2114', name: '葫芦岛市'}
+        ],
+        '22': [
+            {code: '2201', name: '长春市'},
+            {code: '2202', name: '吉林市'},
+            {code: '2203', name: '四平市'},
+            {code: '2204', name: '辽源市'},
+            {code: '2205', name: '通化市'},
+            {code: '2206', name: '白山市'},
+            {code: '2207', name: '松原市'},
+            {code: '2208', name: '白城市'},
+            {code: '2224', name: '延边朝鲜族自治州'}
+        ],
+        '23': [
+            {code: '2301', name: '哈尔滨市'},
+            {code: '2302', name: '齐齐哈尔市'},
+            {code: '2303', name: '鸡西市'},
+            {code: '2304', name: '鹤岗市'},
+            {code: '2305', name: '双鸭山市'},
+            {code: '2306', name: '大庆市'},
+            {code: '2307', name: '伊春市'},
+            {code: '2308', name: '佳木斯市'},
+            {code: '2309', name: '七台河市'},
+            {code: '2310', name: '牡丹江市'},
+            {code: '2311', name: '黑河市'},
+            {code: '2312', name: '绥化市'},
+            {code: '2327', name: '大兴安岭地区'}
+        ],
+        '31': [
+            {code: '3101', name: '上海市'}
+        ],
+        '32': [
+            {code: '3201', name: '南京市'},
+            {code: '3202', name: '无锡市'},
+            {code: '3203', name: '徐州市'},
+            {code: '3204', name: '常州市'},
+            {code: '3205', name: '苏州市'},
+            {code: '3206', name: '南通市'},
+            {code: '3207', name: '连云港市'},
+            {code: '3208', name: '淮安市'},
+            {code: '3209', name: '盐城市'},
+            {code: '3210', name: '扬州市'},
+            {code: '3211', name: '镇江市'},
+            {code: '3212', name: '泰州市'},
+            {code: '3213', name: '宿迁市'}
+        ],
+        '33': [
+            {code: '3301', name: '杭州市'},
+            {code: '3302', name: '宁波市'},
+            {code: '3303', name: '温州市'},
+            {code: '3304', name: '嘉兴市'},
+            {code: '3305', name: '湖州市'},
+            {code: '3306', name: '绍兴市'},
+            {code: '3307', name: '金华市'},
+            {code: '3308', name: '衢州市'},
+            {code: '3309', name: '舟山市'},
+            {code: '3310', name: '台州市'},
+            {code: '3311', name: '丽水市'}
+        ],
+        '34': [
+            {code: '3401', name: '合肥市'},
+            {code: '3402', name: '芜湖市'},
+            {code: '3403', name: '蚌埠市'},
+            {code: '3404', name: '淮南市'},
+            {code: '3405', name: '马鞍山市'},
+            {code: '3406', name: '淮北市'},
+            {code: '3407', name: '铜陵市'},
+            {code: '3408', name: '安庆市'},
+            {code: '3410', name: '黄山市'},
+            {code: '3411', name: '滁州市'},
+            {code: '3412', name: '阜阳市'},
+            {code: '3413', name: '宿州市'},
+            {code: '3415', name: '六安市'},
+            {code: '3416', name: '亳州市'},
+            {code: '3417', name: '池州市'},
+            {code: '3418', name: '宣城市'}
+        ],
+        '35': [
+            {code: '3501', name: '福州市'},
+            {code: '3502', name: '厦门市'},
+            {code: '3503', name: '莆田市'},
+            {code: '3504', name: '三明市'},
+            {code: '3505', name: '泉州市'},
+            {code: '3506', name: '漳州市'},
+            {code: '3507', name: '南平市'},
+            {code: '3508', name: '龙岩市'},
+            {code: '3509', name: '宁德市'}
+        ],
+        '36': [
+            {code: '3601', name: '南昌市'},
+            {code: '3602', name: '景德镇市'},
+            {code: '3603', name: '萍乡市'},
+            {code: '3604', name: '九江市'},
+            {code: '3605', name: '新余市'},
+            {code: '3606', name: '鹰潭市'},
+            {code: '3607', name: '赣州市'},
+            {code: '3608', name: '吉安市'},
+            {code: '3609', name: '宜春市'},
+            {code: '3610', name: '抚州市'},
+            {code: '3611', name: '上饶市'}
+        ],
+        '37': [
+            {code: '3701', name: '济南市'},
+            {code: '3702', name: '青岛市'},
+            {code: '3703', name: '淄博市'},
+            {code: '3704', name: '枣庄市'},
+            {code: '3705', name: '东营市'},
+            {code: '3706', name: '烟台市'},
+            {code: '3707', name: '潍坊市'},
+            {code: '3708', name: '济宁市'},
+            {code: '3709', name: '泰安市'},
+            {code: '3710', name: '威海市'},
+            {code: '3711', name: '日照市'},
+            {code: '3712', name: '临沂市'},
+            {code: '3713', name: '德州市'},
+            {code: '3714', name: '聊城市'},
+            {code: '3715', name: '滨州市'},
+            {code: '3716', name: '菏泽市'}
+        ],
+        '44': [
+            {code: '4401', name: '广州市'},
+            {code: '4403', name: '深圳市'},
+            {code: '4406', name: '佛山市'},
+            {code: '4413', name: '惠州市'},
+            {code: '4419', name: '东莞市'},
+            {code: '4420', name: '中山市'},
+            {code: '4402', name: '韶关市'},
+            {code: '4404', name: '珠海市'},
+            {code: '4405', name: '汕头市'},
+            {code: '4407', name: '江门市'},
+            {code: '4408', name: '湛江市'},
+            {code: '4409', name: '茂名市'},
+            {code: '4410', name: '肇庆市'},
+            {code: '4411', name: '惠州市'},
+            {code: '4412', name: '梅州市'},
+            {code: '4414', name: '河源市'},
+            {code: '4415', name: '阳江市'},
+            {code: '4416', name: '清远市'},
+            {code: '4417', name: '东莞市'},
+            {code: '4418', name: '云浮市'},
+            {code: '4420', name: '中山市'}
+        ],
+        '45': [
+            {code: '4501', name: '南宁市'},
+            {code: '4502', name: '柳州市'},
+            {code: '4503', name: '桂林市'},
+            {code: '4504', name: '梧州市'},
+            {code: '4505', name: '北海市'},
+            {code: '4506', name: '防城港市'},
+            {code: '4507', name: '钦州市'},
+            {code: '4508', name: '贵港市'},
+            {code: '4509', name: '玉林市'},
+            {code: '4510', name: '百色市'},
+            {code: '4511', name: '贺州市'},
+            {code: '4512', name: '河池市'},
+            {code: '4513', name: '来宾市'},
+            {code: '4514', name: '崇左市'}
+        ],
+        '46': [
+            {code: '4601', name: '海口市'},
+            {code: '4602', name: '三亚市'},
+            {code: '4603', name: '三沙市'}
+        ],
+        '51': [
+            {code: '5101', name: '成都市'},
+            {code: '5103', name: '自贡市'},
+            {code: '5104', name: '攀枝花市'},
+            {code: '5105', name: '泸州市'},
+            {code: '5106', name: '德阳市'},
+            {code: '5107', name: '绵阳市'},
+            {code: '5108', name: '广元市'},
+            {code: '5109', name: '遂宁市'},
+            {code: '5110', name: '内江市'},
+            {code: '5111', name: '乐山市'},
+            {code: '5113', name: '南充市'},
+            {code: '5114', name: '眉山市'},
+            {code: '5115', name: '宜宾市'},
+            {code: '5116', name: '广安市'},
+            {code: '5117', name: '达州市'},
+            {code: '5118', name: '雅安市'},
+            {code: '5119', name: '巴中市'},
+            {code: '5120', name: '资阳市'},
+            {code: '5132', name: '阿坝藏族羌族自治州'},
+            {code: '5133', name: '甘孜藏族自治州'},
+            {code: '5134', name: '凉山彝族自治州'}
+        ],
+        '50': [{code: '5001', name: '重庆市'}],
+        '52': [
+            {code: '5201', name: '贵阳市'},
+            {code: '5202', name: '六盘水市'},
+            {code: '5203', name: '遵义市'},
+            {code: '5204', name: '安顺市'},
+            {code: '5205', name: '毕节市'},
+            {code: '5206', name: '铜仁市'},
+            {code: '5223', name: '黔西南布依族苗族自治州'},
+            {code: '5226', name: '黔东南苗族侗族自治州'},
+            {code: '5227', name: '黔南布依族苗族自治州'}
+        ],
+        '53': [
+            {code: '5301', name: '昆明市'},
+            {code: '5303', name: '曲靖市'},
+            {code: '5304', name: '玉溪市'},
+            {code: '5305', name: '保山市'},
+            {code: '5306', name: '昭通市'},
+            {code: '5307', name: '丽江市'},
+            {code: '5308', name: '普洱市'},
+            {code: '5309', name: '临沧市'},
+            {code: '5323', name: '楚雄彝族自治州'},
+            {code: '5325', name: '红河哈尼族彝族自治州'},
+            {code: '5326', name: '文山壮族苗族自治州'},
+            {code: '5328', name: '西双版纳傣族自治州'},
+            {code: '5329', name: '大理白族自治州'},
+            {code: '5331', name: '德宏傣族景颇族自治州'},
+            {code: '5333', name: '怒江傈僳族自治州'},
+            {code: '5334', name: '迪庆藏族自治州'}
+        ],
+        '61': [
+            {code: '6101', name: '西安市'},
+            {code: '6102', name: '铜川市'},
+            {code: '6103', name: '宝鸡市'},
+            {code: '6104', name: '咸阳市'},
+            {code: '6105', name: '渭南市'},
+            {code: '6106', name: '延安市'},
+            {code: '6107', name: '汉中市'},
+            {code: '6108', name: '榆林市'},
+            {code: '6109', name: '安康市'},
+            {code: '6110', name: '商洛市'}
+        ],
+        '62': [
+            {code: '6201', name: '兰州市'},
+            {code: '6202', name: '嘉峪关市'},
+            {code: '6203', name: '金昌市'},
+            {code: '6204', name: '白银市'},
+            {code: '6205', name: '天水市'},
+            {code: '6206', name: '武威市'},
+            {code: '6207', name: '酒泉市'},
+            {code: '6208', name: '张掖市'},
+            {code: '6209', name: '平凉市'},
+            {code: '6210', name: '庆阳市'},
+            {code: '6211', name: '定西市'},
+            {code: '6212', name: '陇南市'},
+            {code: '6229', name: '临夏回族自治州'},
+            {code: '6230', name: '甘南藏族自治州'}
+        ],
+        '63': [
+            {code: '6301', name: '西宁市'},
+            {code: '6302', name: '海东市'},
+            {code: '6322', name: '海北藏族自治州'},
+            {code: '6323', name: '黄南藏族自治州'},
+            {code: '6325', name: '海南藏族自治州'},
+            {code: '6326', name: '果洛藏族自治州'},
+            {code: '6327', name: '玉树藏族自治州'},
+            {code: '6328', name: '海西蒙古族藏族自治州'}
+        ],
+        '64': [
+            {code: '6401', name: '银川市'},
+            {code: '6402', name: '石嘴山市'},
+            {code: '6403', name: '吴忠市'},
+            {code: '6404', name: '固原市'},
+            {code: '6405', name: '中卫市'}
+        ],
+        '65': [
+            {code: '6501', name: '乌鲁木齐市'},
+            {code: '6502', name: '克拉玛依市'},
+            {code: '6521', name: '吐鲁番地区'},
+            {code: '6522', name: '哈密地区'},
+            {code: '6523', name: '昌吉回族自治州'},
+            {code: '6527', name: '博尔塔拉蒙古自治州'},
+            {code: '6528', name: '巴音郭楞蒙古自治州'},
+            {code: '6529', name: '阿克苏地区'},
+            {code: '6530', name: '克孜勒苏柯尔克孜自治州'},
+            {code: '6531', name: '喀什地区'},
+            {code: '6532', name: '和田地区'},
+            {code: '6540', name: '伊犁哈萨克自治州'},
+            {code: '6542', name: '塔城地区'},
+            {code: '6543', name: '阿勒泰地区'}
+        ],
+        '54': [
+            {code: '5401', name: '拉萨市'},
+            {code: '5402', name: '日喀则市'},
+            {code: '5403', name: '山南市'},
+            {code: '5404', name: '林芝市'},
+            {code: '5405', name: '昌都市'},
+            {code: '5406', name: '那曲地区'},
+            {code: '5425', name: '阿里地区'}
+        ],
+        '71': [
+            {code: '7101', name: '台湾'}
+        ],
+        '81': [
+            {code: '8101', name: '香港'}
+        ],
+        '82': [
+            {code: '8201', name: '澳门'}
+        ]
+
+        // 其他省份的城市数据可以根据需要添加
+    };
+
+    function calculateScore() {
+        totalScore = 0;
+        const questions = document.querySelectorAll('.question');
+
+        // 遍历所有问题，累加选中选项的分数
+        questions.forEach(question => {
+            const selectedOption = question.querySelector('.option.selected');
+            if (selectedOption) {
+                const score = parseInt(selectedOption.getAttribute('data-score') || 0);
+                totalScore += score;
+                console.log(`问题得分: ${score}, 总分: ${totalScore}`);
+            }
+        });
+
+        return totalScore;
+    }
+
+    function updateResultPage() {
+        // 更新分数显示
+        document.querySelector('.score-value').textContent = totalScore;
+
+        // 更新严重程度和建议文本
+        let severity = '';
+        let recommendationText = '';
+
+        if (totalScore <= 6) {
+            severity = '无症状';
+            recommendationText = `
+                <p>您目前的评估结果为<strong>正常</strong>，建议您通过以下方式保持健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）、保持每周规律运动3-5次（如步行、慢跑、游泳等）、避免熬夜。</li>
+                    <li>定期填写KMI自评表自测是否出现症状。</li>
+                    <li>若出现症状，请下方点击“专病门诊信息”按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (totalScore >= 7 && totalScore <= 15) {
+            severity = '轻度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>轻度</strong>，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）；保持每周规律运动3-5次（如步行、慢跑、游泳等）；避免熬夜。</li>
+                    <li>记录症状变化（如潮热频率、情绪波动等），定期填写KMI自评表。</li>
+                    <li>每6个月随访一次，若有症状加重，请点击下方“专病门诊信息”按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (totalScore >= 16 && totalScore <= 30) {
+            severity = '中度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>中度</strong>，症状已经影响到您的生活质量，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>请点击下方“专病门诊信息”按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每周记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>每3个月随访一次，若出现新发症状，请立即就诊。</li>
+                </ol>
+            `;
+        } else {
+            severity = '重度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>重度</strong>，症状已严重影响到您的正常生活。</p>
+                <ol>
+                    <li>请点击下方“专病门诊信息”按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每日记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>治疗后需每个月或遵医嘱复诊，若出现严重头痛、心悸等症状，请立即就诊。</li>
+                </ol>
+            `;
+        }
+
+        document.querySelector('.score-severity').textContent = severity;
+        document.querySelector('.recommendations-text').innerHTML = recommendationText;
+    }
+
+    function showResults() {
+        // 检查是否所有问题都已回答
+        const questions = document.querySelectorAll('.question');
+        let allAnswered = true;
+
+        // 检查每个问题是否都已选择答案
+        questions.forEach(question => {
+            const hasSelected = question.querySelector('.option.selected');
+            if (!hasSelected) {
+                allAnswered = false;
+            }
+        });
+
+        if (!allAnswered) {
+            alert('请回答所有问题后再提交');
+            return false; // 防止继续执行
+        }
+
+        // 计算总分
+        calculateScore();
+
+        // 更新结果页面
+        updateResultPage();
+
+        // 如果全部已回答，则显示结果页面
+        document.getElementById('questionnaire-page').classList.add('hidden');
+        document.getElementById('results-page').classList.remove('hidden');
+        return true;
+    }
+
+    function showMapPage() {
+        document.getElementById('results-page').classList.add('hidden');
+        document.getElementById('map-page').classList.remove('hidden');
+        document.getElementById('banner-header').classList.add('hidden');
+        document.querySelector('#map-page').setAttribute('style', 'border-left:none; border-right:none;');
+
+        // 初始化地图（如果尚未初始化）
+        if (!map) {
+            // 延迟一下初始化，确保DOM已经渲染
+            setTimeout(function () {
+                initMap();
+            }, 100);
+        } else {
+            // 如果地图已经初始化，需要刷新一下
+            map.resize();
+        }
+    }
+
+    function returnToResults() {
+        document.getElementById('map-page').classList.add('hidden');
+        document.getElementById('results-page').classList.remove('hidden');
+    }
+
+    function returnToMap() {
+        document.getElementById('clinics-page').classList.add('hidden');
+        document.getElementById('map-page').classList.remove('hidden');
+    }
+
+    function showClinics() {
+        document.getElementById('map-page').classList.add('hidden');
+        document.getElementById('clinics-page').classList.remove('hidden');
+
+        // 确保省市选择器被初始化
+        initProvinceCity();
+    }
+
+    // 修改初始化地图的函数
+    function initMap() {
+        // 确保地图容器存在
+        const mapContainer = document.getElementById('amap-container');
+        if (!mapContainer) {
+            console.error('地图容器不存在');
+            return;
+        }
+
+        try {
+            // 创建地图实例
+            map = new AMap.Map('amap-container', {
+                resizeEnable: true,
+                zoom: 13,
+                viewMode: '2D'  // 设置为2D模式
+            });
+
+            // 添加地图控件
+            map.plugin(['AMap.ToolBar', 'AMap.Scale'], function () {
+                const toolBar = new AMap.ToolBar({
+                    position: 'RB'
+                });
+
+                const scale = new AMap.Scale({
+                    position: 'LB'
+                });
+
+                map.addControl(toolBar);
+                map.addControl(scale);
+            });
+
+            // 定位当前位置
+            map.plugin('AMap.Geolocation', function () {
+                const geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    buttonPosition: 'RB',
+                    buttonOffset: new AMap.Pixel(10, 20),
+                    zoomToAccuracy: true
+                });
+
+                map.addControl(geolocation);
+
+                geolocation.getCurrentPosition(function (status, result) {
+                    console.log('定位结果:', status, result); // 添加调试日志
+
+                    if (status === 'complete') {
+                        userPosition = [result.position.lng, result.position.lat];
+                        // 在地图上添加标记
+                        addMarker(result.position);
+                    } else {
+                        // 默认定位到北京
+                        userPosition = [116.397428, 39.90923];
+                        map.setCenter(userPosition);
+                        addMarker(new AMap.LngLat(userPosition[0], userPosition[1]));
+                        console.log('定位失败: ' + result.message);
+                    }
+                });
+            });
+
+            // 允许用户通过点击地图更新位置
+            map.on('click', function (e) {
+                userPosition = [e.lnglat.getLng(), e.lnglat.getLat()];
+                addMarker(e.lnglat);
+            });
+
+            console.log('地图初始化成功');
+        } catch (error) {
+            console.error('地图初始化失败:', error);
+        }
+    }
+
+    // 在地图上添加标记
+    function addMarker(position) {
+        // 如果已有标记，先移除
+        if (marker) {
+            map.remove(marker);
+        }
+
+        // 创建新标记
+        marker = new AMap.Marker({
+            position: position,
+            icon: new AMap.Icon({
+                size: new AMap.Size(40, 40),
+                image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                imageSize: new AMap.Size(40, 40)
+            }),
+            offset: new AMap.Pixel(-20, -40),
+            animation: 'AMAP_ANIMATION_DROP'
+        });
+
+        map.add(marker);
+        map.setCenter(position);
+    }
+
+    // 确认位置并获取附近医院
+    function confirmLocation() {
+        if (!userPosition) {
+            alert('请先选择位置');
+            return;
+        }
+        document.querySelector('#clinics-page').setAttribute('style', 'border-left:none; border-right:none;');
+
+        // 获取附近医院
+        fetchNearbyHospitals(userPosition[0], userPosition[1]);
+
+        // 切换到医院列表页面
+        showClinics();
+    }
+
+    // 获取附近的医院
+    function fetchNearbyHospitals(lng, lat) {
+        // 使用获取附近医院的key
+        const url = `https://restapi.amap.com/v3/place/around?key=7da2a87f1537a1ee884ea153d98616ae&location=${lng},${lat}&radius=10000&types=090100&keywords=医院&extensions=all`;
+
+        // 显示加载状态
+        document.getElementById('hospitals-list').innerHTML = '<div class="loading-spinner" style="margin: 30px auto;"></div>';
+
+        console.log('请求医院数据URL:', url); // 添加调试日志
+
+        // 发起AJAX请求
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应异常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取到的医院数据:', data); // 添加调试日志
+
+                if (data.status === '1' && data.pois && data.pois.length > 0) {
+                    hospitals = data.pois;
+                    displayHospitals(hospitals);
+
+                    // 提取并设置当前省市
+                    if (hospitals.length > 0 && hospitals[0].pname && hospitals[0].cityname) {
+                        setProvinceCity(hospitals[0].pname, hospitals[0].cityname);
+                    }
+                } else {
+                    console.log('未找到医院数据或数据为空');
+                    // 显示默认医院
+                    displayDefaultHospitals();
+                }
+            })
+            .catch(error => {
+                console.error('获取医院数据失败:', error);
+                displayDefaultHospitals();
+            });
+    }
+
+    // 重新定位
+    function relocateMe() {
+        returnToMap();
+    }
+
+    // 初始化省市选择器
+    function initProvinceCity() {
+        const provinceSelect = document.getElementById('province-select');
+
+        // 清除现有选项
+        provinceSelect.innerHTML = '<option value="">--请选择--</option>';
+
+        // 添加省份选项
+        provinces.forEach(province => {
+            const option = document.createElement('option');
+            option.value = province.code;
+            option.textContent = province.name;
+            provinceSelect.appendChild(option);
+        });
+
+        // 如果有当前省份，选中它
+        if (currentProvince) {
+            const provinceOption = Array.from(provinceSelect.options).find(option =>
+                option.textContent === currentProvince
+            );
+
+            if (provinceOption) {
+                provinceSelect.value = provinceOption.value;
+                updateCities();
+
+                // 同时更新城市选择
+                if (currentCity) {
+                    setTimeout(() => {
+                        const citySelect = document.getElementById('city-select');
+                        const cityOption = Array.from(citySelect.options).find(option =>
+                            option.textContent === currentCity
+                        );
+
+                        if (cityOption) {
+                            citySelect.value = cityOption.value;
+                        }
+                    }, 100);
+                }
+            }
+        }
+    }
+
+    // 修改更新城市选择器函数
+    function updateCities() {
+        const provinceSelect = document.getElementById('province-select');
+        const citySelect = document.getElementById('city-select');
+        const provinceCode = provinceSelect.value;
+
+        // 清除现有城市选项
+        citySelect.innerHTML = '<option value="">--请选择--</option>';
+
+        if (provinceCode && cities[provinceCode]) {
+            // 添加城市选项
+            cities[provinceCode].forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.code;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+
+            // 记录当前选择的省份
+            const provinceOption = provinceSelect.options[provinceSelect.selectedIndex];
+            currentProvince = provinceOption.textContent;
+
+            // 如果只有一个城市，自动选中
+            if(cities[provinceCode].length === 1) {
+                citySelect.value = cities[provinceCode][0].code;
+                currentCity = cities[provinceCode][0].name;
+                // 自动触发城市变更
+                updateHospitals();
+            } else {
+                currentCity = '';
+            }
+        } else {
+            currentProvince = '';
+            currentCity = '';
+        }
+    }
+
+    // 修改根据省市筛选医院的函数
+    function updateHospitals() {
+        const citySelect = document.getElementById('city-select');
+
+        // 记录当前选择的城市
+        if (citySelect.selectedIndex > 0) {
+            currentCity = citySelect.options[citySelect.selectedIndex].textContent;
+        } else {
+            currentCity = '';
+        }
+
+        console.log('当前选择的省市:', currentProvince, currentCity);
+
+        // 判断是否需要重新获取数据
+        const needFetchNewData = !hospitals.length || needToFetchFromServer();
+
+        if (needFetchNewData) {
+            // 需要从服务器获取新数据
+            fetchHospitalsByRegion();
+        } else {
+            // 使用已有数据筛选
+            filterHospitals();
+        }
+    }
+
+    // 判断是否需要从服务器获取新数据
+    function needToFetchFromServer() {
+        // 如果已有数据与当前选择的省市不匹配，需要重新获取
+        if (hospitals.length > 0) {
+            // 检查当前数据是否与选择的省市匹配
+            const hasMatch = hospitals.some(hospital => {
+                const matchProvince = !currentProvince || hospital.pname === currentProvince;
+                const matchCity = !currentCity || hospital.cityname === currentCity;
+                return matchProvince && matchCity;
+            });
+
+            return !hasMatch;
+        }
+        return true;
+    }
+
+    // 根据已有数据进行筛选
+    function filterHospitals() {
+        let filteredHospitals = hospitals;
+
+        if (currentProvince) {
+            filteredHospitals = filteredHospitals.filter(hospital =>
+                hospital.pname === currentProvince || !hospital.pname
+            );
+        }
+
+        if (currentCity) {
+            filteredHospitals = filteredHospitals.filter(hospital =>
+                hospital.cityname === currentCity || !hospital.cityname
+            );
+        }
+
+        displayHospitals(filteredHospitals);
+    }
+
+    // 根据省市从服务器获取医院数据
+    function fetchHospitalsByRegion() {
+        // 显示加载状态
+        document.getElementById('hospitals-list').innerHTML = '<div class="loading-spinner" style="margin: 30px auto;"></div>';
+
+        // 构建请求参数
+        let params = {
+            key: '7da2a87f1537a1ee884ea153d98616ae',
+            keywords: '医院',
+            types: '090100',
+            extensions: 'all'
+        };
+
+        // 如果当前已有定位信息，优先使用
+        if (userPosition) {
+            params.location = `${userPosition[0]},${userPosition[1]}`;
+            params.radius = 50000; // 扩大搜索半径
+        }
+
+        // 如果有省市信息，使用城市进行区域搜索
+        if (currentCity) {
+            params.city = currentCity;
+            // 使用城市搜索时，不使用location参数
+            delete params.location;
+            delete params.radius;
+        } else if (currentProvince) {
+            params.city = currentProvince;
+            delete params.location;
+            delete params.radius;
+        }
+
+        // 构建URL
+        const queryParams = Object.entries(params)
+            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+            .join('&');
+        const url = `https://restapi.amap.com/v3/place/text?${queryParams}`;
+
+        console.log('请求医院数据URL:', url);
+
+        // 发起请求
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应异常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取到的医院数据:', data);
+
+                if (data.status === '1' && data.pois && data.pois.length > 0) {
+                    hospitals = data.pois;
+                    displayHospitals(hospitals);
+                } else {
+                    console.log('未找到医院数据或数据为空');
+                    document.getElementById('hospitals-list').innerHTML =
+                        '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请尝试选择其他省市或重新定位。</p>';
+                }
+            })
+            .catch(error => {
+                console.error('获取医院数据失败:', error);
+                document.getElementById('hospitals-list').innerHTML =
+                    '<p style="text-align: center; color: #666; padding: 20px;">获取医院数据失败，请稍后重试。</p>';
+            });
+    }
+
+    // 修改搜索医院函数
+    function searchHospitals() {
+        const searchInput = document.getElementById('hospital-search');
+        const keyword = searchInput.value.trim();
+
+        if (!keyword && !currentProvince && !currentCity) {
+            alert('请输入搜索关键词或选择省市');
+            return;
+        }
+
+        // 构建请求参数
+        let params = {
+            key: '7da2a87f1537a1ee884ea153d98616ae',
+            types: '090100',
+            extensions: 'all'
+        };
+
+        // 关键词
+        if (keyword) {
+            params.keywords = keyword + ' 医院';
+        } else {
+            params.keywords = '医院';
+        }
+
+        // 如果有省市信息，使用城市进行区域搜索
+        if (currentCity) {
+            params.city = currentCity;
+        } else if (currentProvince) {
+            params.city = currentProvince;
+        } else if (userPosition) {
+            // 如果没有省市但有位置信息
+            params.location = `${userPosition[0]},${userPosition[1]}`;
+            params.radius = 50000;
+        }
+
+        // 构建URL
+        const queryParams = Object.entries(params)
+            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+            .join('&');
+        const url = `https://restapi.amap.com/v3/place/text?${queryParams}`;
+
+        console.log('搜索医院数据URL:', url);
+
+        // 显示加载状态
+        document.getElementById('hospitals-list').innerHTML = '<div class="loading-spinner" style="margin: 30px auto;"></div>';
+
+        // 发起请求
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应异常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('搜索到的医院数据:', data);
+
+                if (data.status === '1' && data.pois && data.pois.length > 0) {
+                    hospitals = data.pois;
+                    displayHospitals(hospitals);
+                } else {
+                    console.log('未找到匹配的医院数据');
+                    document.getElementById('hospitals-list').innerHTML =
+                        '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请尝试其他关键词或选择其他省市。</p>';
+                }
+            })
+            .catch(error => {
+                console.error('搜索医院数据失败:', error);
+                document.getElementById('hospitals-list').innerHTML =
+                    '<p style="text-align: center; color: #666; padding: 20px;">搜索医院数据失败，请稍后重试。</p>';
+            });
+    }
+
+    // 设置省市选择器的值
+    function setProvinceCity(provinceName, cityName) {
+        currentProvince = provinceName;
+        currentCity = cityName;
+
+        // 初始化省市选择器会应用这些值
+        initProvinceCity();
+    }
+
+    // 显示医院列表
+    function displayHospitals(hospitalList) {
+        const clinicsContainer = document.getElementById('hospitals-list');
+        clinicsContainer.innerHTML = '';
+
+        if (hospitalList && hospitalList.length > 0) {
+            hospitalList.forEach(hospital => {
+                const clinicElement = createClinicElement(hospital);
+                clinicsContainer.appendChild(clinicElement);
+            });
+        } else {
+            clinicsContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">未找到匹配的医院，请调整搜索条件或重新定位。</p>';
+        }
+    }
+
+    // 创建医院元素
+    function createClinicElement(hospital) {
+        const clinic = document.createElement('div');
+        clinic.className = 'clinic';
+
+        // 获取医院信息
+        const name = hospital.name || '未知医院';
+        const address = hospital.address || '地址未知';
+        const distance = hospital.distance ? `${(parseInt(hospital.distance) / 1000).toFixed(1)}km` : '距离未知';
+        const tel = hospital.tel || '';
+
+        clinic.innerHTML = `
+            <div class="clinic-header">
+                <h3 class="clinic-name">${name}</h3>
+                <div class="clinic-distance">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="10" r="3"></circle>
+                        <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path>
+                    </svg>
+                    ${distance}
+                </div>
+            </div>
+            <div class="clinic-info">
+                <div class="clinic-address">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    ${address}
+                </div>
+                <div class="clinic-department">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                    </svg>
+                    妇科
+                </div>
+                <div class="clinic-hours">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    工作时间: 周一至周日 8:00-17:30
+                </div>
+            </div>
+            ${tel ? `<a href="tel:${tel}" class="call-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                拨打电话
+            </a>` : ''}
+        `;
+
+        return clinic;
+    }
+
+    // 显示默认医院数据
+    function displayDefaultHospitals() {
+        // 示例医院数据
+        const defaultHospitals = [
+            {
+                name: "东城区舒九社区卫生服务站",
+                address: "东华门街道九胡同22号",
+                distance: "1200",
+                tel: "010-65245200"
+            },
+            {
+                name: "王府井同仁堂中医医院",
+                address: "东安门大街23号",
+                distance: "1200",
+                tel: "010-65267860"
+            },
+            {
+                name: "北京同仁堂中医医院门诊",
+                address: "西打磨厂街46号北京同仁堂中医医院内",
+                distance: "1500",
+                tel: "010-63260033"
+            }
+        ];
+
+        displayHospitals(defaultHospitals);
+    }
+
+    // 显示公众号二维码
+    function showQRCode() {
+        console.log("显示二维码");
+        const qrcodeModal = document.getElementById('qrcode-modal');
+        if (qrcodeModal) {
+            qrcodeModal.style.display = 'flex';
+        }
+    }
+
+    // 隐藏公众号二维码
+    function hideQRCode() {
+        console.log("隐藏二维码");
+        const qrcodeModal = document.getElementById('qrcode-modal');
+        if (qrcodeModal) {
+            qrcodeModal.style.display = 'none';
+        }
+    }
+
+    // 智能打开健康链接的函数
+    function openHealthLink() {
+        // 直接使用https链接而不是ddky协议
+        const webUrl = "https://m.ddky.com/act/65600/index.html";
+
+        // 尝试在新窗口打开链接
+        window.open(webUrl, '_blank');
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        // 确保二维码弹窗初始是隐藏的
+        const qrcodeModal = document.getElementById('qrcode-modal');
+        if (qrcodeModal) {
+            qrcodeModal.style.display = 'none';
+        }
+
+        // 为问卷中的所有选项添加点击事件
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', function () {
+                // 获取当前问题的所有选项
+                const allOptions = this.closest('.options').querySelectorAll('.option');
+
+                // 移除同一问题中所有选项的选中状态
+                allOptions.forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+
+                // 为当前点击的选项添加选中状态
+                this.classList.add('selected');
+            });
+        });
+
+        // 提交按钮添加校验
+        document.querySelector('.submit-btn').addEventListener('click', function (e) {
+            e.preventDefault(); // 阻止默认点击行为
+            showResults(); // 调用showResults函数进行校验并显示结果
+        });
+
+        // 结果页面的"专病门诊信息"按钮
+        document.querySelector('.clinic-btn').addEventListener('click', function () {
+            showMapPage();
+        });
+
+        // 二维码关闭按钮
+        const closeBtn = document.querySelector('.qrcode-close');
+        if (closeBtn && qrcodeModal) {
+            closeBtn.addEventListener('click', function () {
+                qrcodeModal.style.display = 'none';
+            });
+
+            // 点击弹窗背景部分也可以关闭
+            qrcodeModal.addEventListener('click', function (e) {
+                if (e.target === qrcodeModal) {
+                    qrcodeModal.style.display = 'none';
+                }
+            });
+        }
+
+        // 监听搜索框的回车键事件
+        const searchInput = document.getElementById('hospital-search');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    searchHospitals();
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="x5-page-mode" content="app">
+    <meta name="viewport" http-equiv="content-security-policy"
+          content="width=device-width, initial-scale=1.0,accelerometer=*, gyroscope=*">
+    <title>问卷调查</title>
+    <!-- 引入高德地图API，使用地图显示的key -->
+    <script type="text/javascript"
+            src="https://webapi.amap.com/maps?v=2.0&key=ada183fea19cb00bf5312c10822daacb&plugin=AMap.ToolBar,AMap.Scale,AMap.Geolocation"></script>
+    <!-- 引入高德地图UI组件库 -->
+    <script src="https://webapi.amap.com/ui/1.1/main.js?v=1.1.1"></script>
+    <!-- 引入微信JS-SDK -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <style>
+        /* 修复水平滚动条问题 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f7f0ff;
+            background-image: linear-gradient(135deg, #f7f0ff 0%, #e6d3f9 100%);
+        }
+
+        .questionnaire-title h2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* 控制文字与图标间距 */
+        }
+
+        .title-icon {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: normal;
+            margin: 0;
+            text-align: center;
+            flex: 1;
+            color: white;
+        }
+
+        .content {
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            border-left: 16px solid #DD9EF4;
+            border-right: 16px solid #DD9EF4;
+            border-top: 16px solid #DD9EF4;
+            box-sizing: border-box;
+        }
+
+        .questionnaire {
+            background-color: white;
+            padding: 25px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+            box-sizing: border-box;
+        }
+
+        .questionnaire-header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #a367dc;
+            padding: 3px;
+            box-shadow: 0 0 15px rgba(163, 103, 220, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .questionnaire-header h2 {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .questionnaire-header p {
+            font-size: 14px;
+            color: #8a8a8a;
+            margin: 5px 0;
+        }
+
+        .question {
+            margin-bottom: 25px;
+            border-bottom: 1px solid #f5f0ff;
+            padding-bottom: 20px;
+        }
+
+        .question-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #a367dc;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .question-text {
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: inline-block;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .options {
+            margin-left: 40px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 12px 15px;
+            background-color: white;
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .option:hover {
+            background-color: #f9f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+        }
+
+        .option-radio {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #e6d3f9;
+            margin-right: 15px;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .option.selected .option-radio {
+            background-color: #a367dc;
+            border-color: #a367dc;
+        }
+
+        .option-text {
+            font-size: 15px;
+            color: #555;
+        }
+
+        .submit-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 25px auto 10px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .submit-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .results {
+            background-color: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .results-header {
+            margin-bottom: 20px;
+        }
+
+        .results-header img {
+            width: 80px;
+            height: 80px;
+            /*border-radius: 50%;*/
+            /*border: 3px solid #a367dc;*/
+            padding: 3px;
+            margin-bottom: 15px;
+            /*box-shadow: 0 0 15px rgba(163, 103, 220, 0.3);*/
+        }
+
+        .results-header h2 {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .score {
+            margin: 30px 0;
+            background: linear-gradient(135deg, #f9f4ff, #f5eeff);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(163, 103, 220, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease-out forwards;
+            border: 1px solid rgba(163, 103, 220, 0.1);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-label {
+            font-size: 16px;
+            display: inline-block;
+            background-color: white;
+            color: #8a57c2;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(138, 87, 194, 0.15);
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 1px;
+        }
+
+        .score-value {
+            font-size: 70px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #9356cc, #c188ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px auto 15px;
+            position: relative;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            animation: pulseEffect 1.5s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes pulseEffect {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .score-value:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, #a367dc, transparent);
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .score-severity {
+            display: inline-block;
+            background: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            padding: 10px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 25px auto 0;
+            border-radius: 30px;
+            box-shadow: 0 8px 20px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-severity:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 100%;
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .score-range {
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            line-height: 1.6;
+            background-color: white;
+            padding: 18px;
+            border-radius: 16px;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #f0e5ff;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out forwards;
+            animation-delay: 0.5s;
+        }
+
+        .score-range:before {
+            content: "ℹ️";
+            margin-right: 8px;
+        }
+
+        .recommendations {
+            background-color: #f7f0ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: left;
+            border: 1px dashed #e6d3f9;
+        }
+
+        .recommendations-title {
+            color: #a367dc;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendations-title:before {
+            content: "♥";
+            margin-right: 8px;
+            color: #c188ee;
+        }
+
+        .recommendations-text {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .clinic-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .clinic-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .save-text {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-text:before, .save-text:after {
+            /*content: "✿";*/
+            color: #c188ee;
+            margin: 0 8px;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            background-color: white;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .map {
+            width: 100%;
+            height: 60vh; /* 从70vh调整为60vh，减小高度 */
+            background-color: #f7f0ff;
+        }
+
+        /* 地图页面头部 */
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+        }
+
+        .map-header .back-button {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .map-header .back-button svg {
+            margin-right: 5px;
+        }
+
+        .map-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: normal;
+        }
+
+        .confirm-location-btn {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            font-size: 16px;
+            padding: 12px;
+            border: none;
+            border-radius: 30px;
+            width: 90%;
+            margin: 15px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .confirm-location-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+        }
+
+        .clinics {
+            background-color: white;
+            border-radius: 20px;
+            padding: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .clinic-name {
+            font-size: 18px;
+            color: #a367dc;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .clinic-address, .clinic-distance, .clinic-department, .clinic-hours {
+            font-size: 14px;
+            color: #666;
+            margin: 6px 0;
+            padding-left: 5px;
+            border-left: 2px solid #e6d3f9;
+        }
+
+        .clinic-distance {
+            color: #a367dc;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 搜索和选择控件样式 */
+        .search-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+        }
+
+        .search-box {
+            background-color: white;
+            border-radius: 30px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            padding: 8px 10px;
+            color: #555;
+        }
+
+        .search-button {
+            background-color: #a367dc;
+            background-image: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            margin-left: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.3);
+            transition: all 0.3s;
+        }
+
+        .search-button:active {
+            transform: scale(0.95);
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(163, 103, 220, 0.1);
+            border: 1px solid #e6d3f9;
+            flex-wrap: wrap;
+        }
+
+        .location-selectors {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .location-group {
+            margin-right: 15px;
+            margin-bottom: 5px;
+            position: relative;
+        }
+
+        .location-group:after {
+            content: "✿";
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #c188ee;
+            font-size: 12px;
+        }
+
+        .location-group:last-child:after {
+            display: none;
+        }
+
+        .location-label {
+            color: #a367dc;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+
+        .location-select {
+            border: none;
+            color: #a367dc;
+            background: transparent;
+            font-size: 15px;
+            appearance: none;
+            padding-right: 15px;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23a367dc" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right center;
+            max-width: 120px;
+            text-overflow: ellipsis;
+            -webkit-appearance: none;
+        }
+
+        .relocate-button {
+            display: flex;
+            align-items: center;
+            background: #f7f0ff;
+            border: 1px solid #e6d3f9;
+            color: #a367dc;
+            border-radius: 20px;
+            padding: 8px 10px;
+            white-space: nowrap;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-left: auto;
+            font-size: 13px;
+        }
+
+        .relocate-button:active {
+            background-color: #a367dc;
+            color: white;
+        }
+
+        .relocate-icon {
+            margin-right: 5px;
+            stroke: #a367dc;
+        }
+
+        .relocate-button:active .relocate-icon {
+            stroke: white;
+        }
+
+        /* 母亲节装饰 */
+        .mother-day-decor {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23a367dc" d="M50,10 C60,25 80,25 90,15 C90,40 70,60 50,70 C30,60 10,40 10,15 C20,25 40,25 50,10 Z"/></svg>');
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.5;
+            z-index: -1;
+        }
+
+        /* 移动端适配样式 */
+        @media screen and (max-width: 480px) {
+            .filter-container {
+                padding: 10px;
+            }
+
+            .location-selectors {
+                flex-wrap: nowrap;
+                margin-right: 8px;
+                width: auto;
+                margin-bottom: 0;
+            }
+
+            .location-group {
+                margin-right: 8px;
+            }
+
+            .location-group:after {
+                right: -5px;
+            }
+
+            .location-select {
+                max-width: 80px;
+                font-size: 13px;
+            }
+
+            .relocate-button {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .relocate-button .relocate-icon {
+                width: 16px;
+                height: 16px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+            }
+
+            .clinic-name {
+                font-size: 16px;
+            }
+
+            .clinic-address, .clinic-distance, .clinic-department, .clinic-hours {
+                font-size: 13px;
+            }
+
+            .questionnaire-header h2,
+            .results-header h2 {
+                font-size: 20px;
+            }
+
+            .score {
+                margin: 20px 0;
+                padding: 20px 10px;
+                border-radius: 15px;
+            }
+
+            .score-label {
+                font-size: 13px;
+                padding: 4px 12px;
+                margin-bottom: 15px;
+            }
+
+            .score-value {
+                font-size: 46px;
+                margin: 15px auto 5px;
+            }
+
+            .score-value:after {
+                width: 60px;
+                height: 2px;
+                bottom: -8px;
+            }
+
+            .score-severity {
+                font-size: 16px;
+                padding: 6px 20px;
+                margin: 20px auto 0;
+            }
+
+            .score-range {
+                font-size: 13px;
+                padding: 12px 10px;
+                margin-top: 20px;
+                line-height: 1.5;
+            }
+
+            .score-range:before {
+                font-size: 11px;
+                top: -8px;
+                left: 15px;
+            }
+        }
+
+        /* 加载动画 */
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(163, 103, 220, 0.2);
+            border-radius: 50%;
+            border-top-color: #a367dc;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        /* 结果内容的淡入动画 */
+        .results-content {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards;
+            animation-delay: 0.3s;
+        }
+
+        #amap-container {
+            width: 100%;
+            height: 60vh; /* 与上面保持一致 */
+            position: relative;
+            z-index: 1;
+        }
+
+        .clinics {
+            margin-top: 25px;
+        }
+
+        .clinic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .clinic-name {
+            font-size: 17px;
+            font-weight: bold;
+            color: #8a57c2;
+            margin: 0;
+        }
+
+        .clinic-distance {
+            color: #a367dc;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            background: #f9f4ff;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .clinic-distance svg {
+            margin-right: 5px;
+            stroke: #a367dc;
+        }
+
+        .clinic-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .clinic-address, .clinic-department, .clinic-hours {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .clinic-address svg, .clinic-department svg, .clinic-hours svg {
+            margin-right: 8px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            stroke: #a367dc;
+        }
+
+        .call-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to right, #a367dc, #c188ee);
+            color: white;
+            padding: 10px;
+            border-radius: 30px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(163, 103, 220, 0.2);
+        }
+
+        .call-button:active {
+            transform: scale(0.97);
+        }
+
+        .call-button svg {
+            margin-right: 8px;
+        }
+
+        /* 公众号按钮样式 */
+        .follow-btn {
+            background-color: #fcf0ff;
+            color: #a367dc;
+            font-size: 16px;
+            padding: 12px;
+            border: 2px solid #a367dc;
+            border-radius: 30px;
+            width: 90%;
+            margin: 10px auto 25px auto;
+            display: block;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(163, 103, 220, 0.2);
+            transition: all 0.3s;
+        }
+
+        .follow-btn:active {
+            transform: translateY(2px);
+            background-color: #f2e6ff;
+            box-shadow: 0 2px 5px rgba(163, 103, 220, 0.2);
+        }
+
+        /* 二维码弹窗样式 */
+        .qrcode-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .qrcode-container {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .qrcode-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #a367dc;
+            cursor: pointer;
+        }
+
+        .qrcode-image {
+            width: 100%;
+            max-width: 250px;
+            margin: 10px auto;
+        }
+
+        .qrcode-text {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* banner样式 */
+        .banner-header {
+            text-align: center;
+            margin: -25px -25px 30px -25px; /* 负margin延伸至questionnaire边缘 */
+            background: linear-gradient(135deg, #DD9EF4, #DD9EF4);
+            padding: 25px 15px;
+            border-radius: 20px 20px 0 0; /* 只保留上方圆角 */
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.3);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: -21px;
+        }
+
+        .banner-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: 0;
+            line-height: 1.4;
+            margin-top: 28px;
+        }
+
+        /* 顶部图片样式 */
+
+        /* 标题样式 */
+        .questionnaire-title {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .questionnaire-title h2 {
+            font-size: 22px;
+            margin: 0 0 5px 0;
+            color: #8a57c2;
+            font-weight: bold;
+        }
+
+        .questionnaire-title p {
+            font-size: 12px;
+            color: #8a8a8a;
+            margin: 5px 0 15px 0;
+        }
+
+        /* 修改地图容器样式，减小高度 */
+        .map {
+            width: 100%;
+            height: 60vh; /* 从70vh调整为60vh，减小高度 */
+            background-color: #f7f0ff;
+        }
+
+        #amap-container {
+            width: 100%;
+            height: 60vh; /* 与上面保持一致 */
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 修改地图页和医院列表页面的content样式，清除边框 */
+        .content-no-border {
+            margin-top: 0;
+            background-color: transparent;
+            max-width: 100%;
+            overflow-x: hidden;
+            /*border-left: none;*/
+            /*border-right: none;*/
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="banner-header" id="banner-header">
+    <h1 class="banner-text">护龄无界，悦见新生</h1>
+</div>
+<!-- 问卷页面 -->
+<div class="content content-no-border" id="questionnaire-page">
+    <div class="questionnaire">
+        <!-- 移除banner -->
+
+        <!-- 问卷标题 -->
+        <div class="questionnaire-title">
+            <h2>绝经相关症状指数 <img src="图书.png" class="title-icon"></h2>
+            <p>测测您的绝经期相关症状指数(Kupperman改良评分)</p>
+        </div>
+
+        <!-- 添加母亲节装饰 -->
+        <div class="mother-day-decor"></div>
+
+        <div class="question">
+            <span class="question-number">1</span>
+            <span class="question-text">潮热、出汗 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. &lt;3次/天 </span>
+                </div>
+                <div class="option" data-score="8">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 3~9次/天 </span>
+                </div>
+                <div class="option" data-score="12">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. ≥10次/天 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">2</span>
+            <span class="question-text">感觉异常 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 与天气有关 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 平常有冷、热、麻、痛不适 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 冷、热、麻感显著 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">3</span>
+            <span class="question-text">失眠 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，安眠药有效 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 影响工作和生活 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">4</span>
+            <span class="question-text">情绪易激动 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能控制 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 经常，不能自控 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">5</span>
+            <span class="question-text">抑郁忧虑 </span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，影响正常活动 </span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 经常，不能自控或需药物治疗 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">6</span>
+            <span class="question-text">眩晕</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔</span>
+                </div>
+                <div class="option" data-score="8">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响日常生活</span>
+                </div>
+                <div class="option" data-score="12">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 影响日常生活</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">7</span>
+            <span class="question-text">疲劳</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 上四楼困难 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 日常生活受限 </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">8</span>
+            <span class="question-text">骨、关节痛</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响功能 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 功能障碍</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">9</span>
+            <span class="question-text">头痛</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能忍受 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">10</span>
+            <span class="question-text">心悸</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，不影响正常生活 </span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+        <div class="question">
+            <span class="question-number">11</span>
+            <span class="question-text">皮肤蚁走感</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 经常，能忍受 </span>
+                </div>
+                <div class="option" data-score="6">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 需治疗</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">12</span>
+            <span class="question-text">性生活状况</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 正常</span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 性欲下降</span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. 性交痛</span>
+                </div>
+                <div class="option" data-score="4">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. 性欲丧失</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="question">
+            <span class="question-number">13</span>
+            <span class="question-text">泌尿系统感染</span>
+            <div class="options">
+                <div class="option" data-score="0">
+                    <div class="option-radio"></div>
+                    <span class="option-text">A. 无 </span>
+                </div>
+                <div class="option" data-score="1">
+                    <div class="option-radio"></div>
+                    <span class="option-text">B. 偶尔 </span>
+                </div>
+                <div class="option" data-score="2">
+                    <div class="option-radio"></div>
+                    <span class="option-text">C. ＞3年/次，能自愈</span>
+                </div>
+                <div class="option" data-score="3">
+                    <div class="option-radio"></div>
+                    <span class="option-text">D. ＞3年/次，需服药</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="submit-btn">提交</button>
+    </div>
+</div>
+
+<!-- 结果页面 -->
+<div class="content hidden" id="results-page">
+    <div class="results">
+        <!-- 恢复头像样式 -->
+        <div class="results-header">
+            <h2>绝经相关症状指数-结果</h2>
+        </div>
+
+        <div class="score">
+            <div class="score-label">测试结果</div>
+            <div class="score-value">31</div>
+            <div class="score-severity">重度</div>
+        </div>
+
+        <div class="score-range">
+            评分总分≤6分为无症状；7-15分为轻度；16-30分为中度；&gt;30分为重度
+        </div>
+
+        <div class="recommendations">
+            <div class="recommendations-title">建议：</div>
+            <div class="recommendations-text">
+                <!-- 这里的内容将由JavaScript动态替换 -->
+            </div>
+        </div>
+
+        <button class="clinic-btn" onclick="openMapPage()">专病门诊信息</button>
+
+        <!-- 添加关注公众号按钮 -->
+        <button class="follow-btn" onclick="openHealthLink()">线上咨询医生</button>
+
+        <div class="save-text">
+            您可截图保存至手机，定期检测自行做数据对比
+        </div>
+    </div>
+</div>
+
+<!-- 地图页面 -->
+<div class="content content-no-border hidden" id="map-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="returnToResults()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>选择您的位置</h2>
+        <div style="width: 40px;"></div><!-- 空白占位，保持标题居中 -->
+    </div>
+
+    <div class="map-container">
+        <div id="amap-container" class="map"></div>
+        <button class="confirm-location-btn" onclick="confirmLocation()">确认位置</button>
+    </div>
+</div>
+
+<!-- 医院列表页面 -->
+<div class="content content-no-border hidden" id="clinics-page">
+    <div class="map-header">
+        <a href="#" class="back-button" onclick="returnToMap()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            返回
+        </a>
+        <h2>附近医院</h2>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <div class="search-container">
+        <div class="filter-container">
+            <div class="location-selectors">
+                <div class="location-group">
+                    <label class="location-label">省</label>
+                    <select id="province-select" class="location-select" onchange="updateCities()">
+                        <option value="">--请选择--</option>
+                        <!-- 省份选项会在JS中动态添加 -->
+                    </select>
+                </div>
+                <div class="location-group">
+                    <label class="location-label">市</label>
+                    <select id="city-select" class="location-select" onchange="updateHospitals()">
+                        <option value="">--请选择--</option>
+                        <!-- 城市选项会在JS中动态添加 -->
+                    </select>
+                </div>
+            </div>
+            <button class="relocate-button" onclick="relocateMe()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="relocate-icon">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8l4 4-4 4"></path>
+                    <path d="M8 12h8"></path>
+                </svg>
+                重新定位
+            </button>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="hospital-search" class="search-input" placeholder="搜索医院名称">
+            <button class="search-button" onclick="searchHospitals()">搜索</button>
+        </div>
+    </div>
+
+    <div class="clinics" id="hospitals-list">
+        <!-- 医院列表会在JS中动态生成 -->
+        <div class="loading-spinner" style="margin: 30px auto;"></div>
+    </div>
+</div>
+
+<!-- 公众号二维码弹窗 -->
+<div id="qrcode-modal" class="qrcode-modal" style="display: none;">
+    <div class="qrcode-container">
+        <div class="qrcode-close" onclick="hideQRCode()">×</div>
+        <img src="公众号.png" alt="微信公众号二维码" class="qrcode-image">
+        <div class="qrcode-text">长按识别二维码关注公众号</div>
+    </div>
+</div>
+
+<script>
+    // 全局变量
+    let totalScore = 0; // 总分变量
+
+    function calculateScore() {
+        totalScore = 0;
+        const questions = document.querySelectorAll('.question');
+
+        // 遍历所有问题，累加选中选项的分数
+        questions.forEach(question => {
+            const selectedOption = question.querySelector('.option.selected');
+            if (selectedOption) {
+                const score = parseInt(selectedOption.getAttribute('data-score') || 0);
+                totalScore += score;
+                console.log(`问题得分: ${score}, 总分: ${totalScore}`);
+            }
+        });
+
+        return totalScore;
+    }
+
+    function updateResultPage() {
+        // 更新分数显示
+        document.querySelector('.score-value').textContent = totalScore;
+        // class为banner-text 设置display为none
+        document.querySelector('.banner-text').style.display = 'none';
+
+        // 更新严重程度和建议文本
+        let severity = '';
+        let recommendationText = '';
+
+        if (totalScore <= 6) {
+            severity = '无症状';
+            recommendationText = `
+                <p>您目前的评估结果为<strong>正常</strong>，建议您通过以下方式保持健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）、保持每周规律运动3-5次（如步行、慢跑、游泳等）、避免熬夜。</li>
+                    <li>定期填写KMI自评表自测是否出现症状。</li>
+                    <li>若出现症状，请下方点击"专病门诊信息"按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (totalScore >= 7 && totalScore <= 15) {
+            severity = '轻度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>轻度</strong>，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>均衡饮食（增加谷物纤维、足量蔬菜和水果、每周2次鱼类食品）；保持每周规律运动3-5次（如步行、慢跑、游泳等）；避免熬夜。</li>
+                    <li>记录症状变化（如潮热频率、情绪波动等），定期填写KMI自评表。</li>
+                    <li>每6个月随访一次，若有症状加重，请点击下方"专病门诊信息"按钮查询离您最近的医院信息，及时就诊。</li>
+                </ol>
+            `;
+        } else if (totalScore >= 16 && totalScore <= 30) {
+            severity = '中度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>中度</strong>，症状已经影响到您的生活质量，建议您通过以下方式改善健康状态：</p>
+                <ol>
+                    <li>请点击下方"专病门诊信息"按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每周记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>每3个月随访一次，若出现新发症状，请立即就诊。</li>
+                </ol>
+            `;
+        } else {
+            severity = '重度';
+            recommendationText = `
+                <p>根据您的评估，您的更年期相关状况为<strong>重度</strong>，症状已严重影响到您的正常生活。</p>
+                <ol>
+                    <li>请点击下方"专病门诊信息"按钮查询离您最近的医院信息，尽快就诊。</li>
+                    <li>每日记录症状变化和用药反应，复诊时提供给医生参考。</li>
+                    <li>治疗后需每个月或遵医嘱复诊，若出现严重头痛、心悸等症状，请立即就诊。</li>
+                </ol>
+            `;
+        }
+
+        document.querySelector('.score-severity').textContent = severity;
+        document.querySelector('.recommendations-text').innerHTML = recommendationText;
+    }
+
+    function showResults() {
+        // 检查是否所有问题都已回答
+        const questions = document.querySelectorAll('.question');
+        let allAnswered = true;
+
+        // 检查每个问题是否都已选择答案
+        questions.forEach(question => {
+            const hasSelected = question.querySelector('.option.selected');
+            if (!hasSelected) {
+                allAnswered = false;
+            }
+        });
+
+        if (!allAnswered) {
+            alert('请回答所有问题后再提交');
+            return false; // 防止继续执行
+        }
+
+        // 计算总分
+        calculateScore();
+
+        // 重定向到结果页面，并通过URL参数传递分数
+        window.location.href = `result.html?score=${totalScore}`;
+        return true;
+    }
+
+    // 打开地图页面
+    function openMapPage() {
+        window.location.href = 'map.html';
+    }
+
+    // 打开线上咨询医生链接
+    function openHealthLink() {
+        // 使用window.open打开新窗口/标签，这样原页面仍然保留
+        window.open('https://m.ddky.com/act/79736/index.html ', '_blank');
+    }
+
+    // 从地图页面返回结果页面
+    function returnToResults() {
+        document.getElementById('map-page').classList.add('hidden');
+        document.getElementById('results-page').classList.remove('hidden');
+    }
+
+    // 隐藏公众号二维码
+    function hideQRCode() {
+        document.getElementById('qrcode-modal').style.display = 'none';
+    }
+
+    // 当用户点击选项时
+    document.addEventListener('DOMContentLoaded', function () {
+        // 为所有选项添加点击事件
+        const options = document.querySelectorAll('.option');
+        options.forEach(option => {
+            option.addEventListener('click', function () {
+                // 找到当前问题中的所有选项
+                const parentQuestion = this.closest('.question');
+                const questionOptions = parentQuestion.querySelectorAll('.option');
+
+                // 移除其他选项的选中状态
+                questionOptions.forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+
+                // 为当前选项添加选中状态
+                this.classList.add('selected');
+            });
+        });
+
+        // 为提交按钮添加点击事件
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', showResults);
+        }
+    });
+</script>
+</body>
+</html>

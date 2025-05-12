@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-time Data Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+</head>
+<body>
+<div id="app">
+  <h1>Real-time Data Dashboard</h1>
+  <div v-for="(data,idx) in serverData" :key="idx">{{ data }}</div>
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      serverData: []
+    },
+    created() {
+      const eventSource = new EventSource('/reg?uid=3&page=index');
+      eventSource.onmessage = (event) => {
+        this.serverData.push(event.data);
+      };
+    }
+  });
+</script>
+</body>
+</html>

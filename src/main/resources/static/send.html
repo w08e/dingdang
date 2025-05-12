@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拜耳女性健康智能问答</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f0ff 0%, #e8f6ff 100%);
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .app-container {
+      max-width: 414px;
+      margin: 0 auto;
+      position: relative;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 头部导航 */
+    .header {
+      height: 60px;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 15px;
+      border-bottom: 1px solid #eee;
+      position: relative;
+    }
+
+    .header-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .back-button {
+      width: 24px;
+      height: 24px;
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .menu-button {
+      width: 24px;
+      height: 24px;
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* 内容区域 */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    /* 药物警戒提示 */
+    .drug-alert {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .alert-icon {
+      color: #F5A623;
+      margin-right: 10px;
+      font-size: 20px;
+    }
+
+    .alert-text {
+      font-size: 14px;
+      color: #666;
+      flex: 1;
+    }
+
+    /* 虚拟形象区域 */
+    .avatar-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .avatar-img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      margin-right: 12px;
+    }
+
+    .avatar-info {
+      flex: 1;
+    }
+
+    .avatar-name {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .avatar-description {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* 对话气泡 */
+    .message {
+      margin-bottom: 15px;
+    }
+
+    .assistant-message {
+      display: flex;
+      margin-bottom: 20px;
+    }
+
+    .assistant-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .message-bubble {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 12px 15px;
+      max-width: 80%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .assistant-bubble {
+      position: relative;
+      margin-left: 10px;
+    }
+
+    .user-message {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .user-bubble {
+      background-color: #0099D8;
+      color: #fff;
+    }
+
+    /* 选项按钮 */
+    .option-button {
+      display: flex;
+      align-items: center;
+      background-color: #fff;
+      border: 1px solid #0099D8;
+      border-radius: 24px;
+      padding: 8px 20px;
+      margin-bottom: 12px;
+      color: #0099D8;
+      font-size: 16px;
+      cursor: pointer;
+      width: fit-content;
+      max-width: 80%;
+    }
+
+    .option-button .icon {
+      margin-right: 8px;
+      color: #0099D8;
+    }
+
+    /* 答案内容 */
+    .answer-container {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .answer-title {
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .answer-question {
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .answer-content {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .reference-section {
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    .expand-button {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 底部输入区 */
+    .input-container {
+      height: 60px;
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      background-color: #fff;
+      border-top: 1px solid #eee;
+    }
+
+    .voice-button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #f5f5f5;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .input-field {
+      flex: 1;
+      height: 40px;
+      border: none;
+      background-color: #f5f5f5;
+      border-radius: 20px;
+      padding: 0 15px;
+      font-size: 15px;
+    }
+
+    .send-button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #0099D8;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-left: 10px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    /* 免责声明弹窗 */
+    .disclaimer-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .disclaimer-content {
+      background-color: #fff;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 330px;
+      padding: 20px;
+    }
+
+    .disclaimer-title {
+      font-size: 18px;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .disclaimer-text {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      color: #555;
+    }
+
+    .disclaimer-button {
+      background-color: #0099D8;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 0;
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* 返回首页按钮 */
+    .back-home-button {
+      background-color: #0099D8;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container" id="app">
+  <!-- 头部导航 -->
+  <div class="header">
+    <button class="back-button">×</button>
+    <div class="header-title">智能问答</div>
+    <button class="menu-button">⋯</button>
+  </div>
+
+  <!-- 内容区域 -->
+  <div class="content" id="content">
+    <!-- 药物警戒提示 -->
+    <div class="drug-alert">
+      <div class="alert-icon">⚠</div>
+      <div class="alert-text">如需报告使用拜耳产品后出现的不适或产品质量问题，可与您的医生药师或本地药品监管部门进行联系，也可通过以下方式直接联系我们，邮箱:AE_China@bayer.com。</div>
+      <div class="close-button">×</div>
+    </div>
+
+    <!-- 虚拟形象区域 -->
+    <div class="avatar-container">
+      <img src="/IMG_5087.JPG" alt="小满" class="avatar-img" id="avatar">
+      <div class="avatar-info">
+        <div class="avatar-name">小满（智能问答数字人）</div>
+        <div class="avatar-description">小满陪伴 健康随行</div>
+      </div>
+    </div>
+
+    <!-- 对话内容区域 -->
+    <div id="chatArea">
+      <!-- 初始欢迎消息 -->
+      <div class="assistant-message">
+        <img src="/IMG_5087.JPG" alt="小满" class="assistant-avatar">
+        <div class="message-bubble">
+          您好，我是智能问答数字人小满，擅长解答拜耳女性健康产品相关的医学问题（后期将增加宫内孕激素和疾病相关内容）。请问有什么可以帮您？
+        </div>
+      </div>
+
+      <!-- 药品选项 -->
+      <div id="productOptions">
+        <button class="option-button" onclick="selectProduct('屈螺酮炔雌醇片')">
+          <span class="icon">📎</span>屈螺酮炔雌醇片
+        </button>
+        <button class="option-button" onclick="selectProduct('屈螺酮炔雌醇片(II)')">
+          <span class="icon">📎</span>屈螺酮炔雌醇片(II)
+        </button>
+        <button class="option-button" onclick="selectProduct('地诺孕素片')">
+          <span class="icon">📎</span>地诺孕素片
+        </button>
+      </div>
+
+      <!-- 输入提示 -->
+      <div class="input-tip" style="font-size: 14px; color: #666; margin-top: 20px;">
+        如果您不确定上述内容，您也可以在此输入您想咨询的产品名称
+      </div>
+
+      <!-- 问题类型选择区域（初始隐藏） -->
+      <div id="questionTypes" style="display: none; margin-top: 20px;">
+        <div class="assistant-message">
+          <img src="/IMG_5087.JPG" alt="小满" class="assistant-avatar">
+          <div class="message-bubble">
+            请选择您要询问的问题类型，或输入问题直接提问
+          </div>
+        </div>
+
+        <div class="question-options">
+          <button class="option-button" onclick="selectQuestionType('疾病小知识')">疾病小知识</button>
+          <button class="option-button" onclick="selectQuestionType('适用人群和疗效')">适用人群和疗效</button>
+          <button class="option-button" onclick="selectQuestionType('使用方法和剂量')">使用方法和剂量</button>
+          <button class="option-button" onclick="selectQuestionType('注意事项和安全性')">注意事项和安全性</button>
+        </div>
+      </div>
+
+      <!-- 回答内容区域（初始隐藏） -->
+      <div id="answerContainer" style="display: none; margin-top: 20px;">
+        <div class="answer-container">
+          <div class="answer-title">复方口服避孕药会抑制子宫内膜</div>
+
+          <div class="answer-question">
+            服用复方口服避孕药是否会导致月经减少、停经，是否需要停药？
+          </div>
+
+          <div class="answer-content">
+            复方口服避孕药会抑制子宫内膜增殖，导致月经量减少或停经。出现月经量减少一般不需要处理，因为不影响健康，停药后自行恢复正常。对停经的妇女，需排除妊娠的可能。若确实不能接受月经量减少或停经，根据具体情况可停用或更换其他避孕方法。
+          </div>
+
+          <div class="reference-section">
+            参考资料：
+            <div class="expand-button">
+              <span>展开详情</span>
+              <span style="margin-left: 5px;">▼</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="back-home-button">返回首页</button>
+      </div>
+
+      <!-- 用户提问示例 -->
+      <div id="userQuestion" style="display: none;">
+        <div class="user-message">
+          <div class="message-bubble user-bubble">
+            感冒打喷嚏吃什么药
+          </div>
+        </div>
+
+        <div class="assistant-message">
+          <img src="/IMG_5087.JPG" alt="小满" class="assistant-avatar">
+          <div class="message-bubble">
+            感谢您的问题！我还在学习中，暂时无法回答这个问题。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部输入区 -->
+  <div class="input-container">
+    <button class="voice-button">🎤</button>
+    <input type="text" class="input-field" placeholder="请输入您想咨询的问题" id="userInput">
+    <button class="send-button">➤</button>
+  </div>
+
+  <!-- 免责声明弹窗 -->
+  <div class="disclaimer-modal" id="disclaimerModal">
+    <div class="disclaimer-content">
+      <div class="disclaimer-title">免责声明</div>
+      <div class="disclaimer-text">
+        本栏目下您所咨询问题的答复内容均为相关疾病知识和拜耳产品相关的内容，本栏目旨在帮助您了解相关疾病知识，并不可取代专业医生的诊疗和医嘱，亦不能作为患者自我诊断或者治疗的依据。唯有您的医生方能为您做出准确的判断，提供适当的治疗。
+
+        如需报告使用拜耳产品后出现的不良事件或产品质量问题，可与您的医生或药师进行联系，也可以通过以下方式直接联系我们。邮箱: AE_China@bayer.com。
+      </div>
+      <button class="disclaimer-button" id="agreeButton">同意</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 页面加载完成后执行
+  document.addEventListener('DOMContentLoaded', function() {
+    // 获取DOM元素
+    const disclaimerModal = document.getElementById('disclaimerModal');
+    const agreeButton = document.getElementById('agreeButton');
+    const productOptions = document.getElementById('productOptions');
+    const questionTypes = document.getElementById('questionTypes');
+    const answerContainer = document.getElementById('answerContainer');
+    const userQuestion = document.getElementById('userQuestion');
+    const backHomeButton = document.querySelector('.back-home-button');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.querySelector('.send-button');
+
+    // 同意免责声明
+    agreeButton.addEventListener('click', function() {
+      disclaimerModal.style.display = 'none';
+    });
+
+    // 产品选择处理函数
+    window.selectProduct = function(product) {
+      productOptions.style.display = 'none';
+      questionTypes.style.display = 'block';
+    };
+
+    // 问题类型选择处理函数
+    window.selectQuestionType = function(type) {
+      questionTypes.style.display = 'none';
+      answerContainer.style.display = 'block';
+    };
+
+    // 返回首页按钮处理
+    backHomeButton.addEventListener('click', function() {
+      answerContainer.style.display = 'none';
+      questionTypes.style.display = 'none';
+      productOptions.style.display = 'block';
+      userQuestion.style.display = 'none';
+    });
+
+    // 发送按钮处理
+    sendButton.addEventListener('click', function() {
+      const text = userInput.value.trim();
+      if (text) {
+        productOptions.style.display = 'none';
+        questionTypes.style.display = 'none';
+        answerContainer.style.display = 'none';
+        userQuestion.style.display = 'block';
+        userInput.value = '';
+      }
+    });
+
+    // 监听输入框回车事件
+    userInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendButton.click();
+      }
+    });
+  });
+</script>
+</body>
+</html>
