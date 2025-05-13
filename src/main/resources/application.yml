@@ -10,4 +10,4 @@ spring:
     mode: HTML
     encoding: UTF-8
 server:
-  port: 8888
+  port: 8899

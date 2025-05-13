@@ -1266,72 +1266,7 @@
                     </div>
                 ${hospital.clinicName ? `<div class="clinic-info">门诊名称: ${hospital.clinicName}</div>` : ''}
                 ${hospital.clinicTime ? `<div class="clinic-info">门诊时间: ${hospital.clinicTime}</div>` : ''}
-                <button class="view-on-map-btn">在地图上查看</button>
             `;
-
-            // 添加"在地图上查看"按钮的点击事件
-            const viewOnMapBtn = item.querySelector('.view-on-map-btn');
-            viewOnMapBtn.addEventListener('click', () => {
-                // 检查医院是否有经纬度信息
-                if (hospital.longitude && hospital.latitude) {
-                    // 1. Switch view to the map page
-                    returnToMap();
-
-                    const position = [hospital.longitude, hospital.latitude];
-
-                    // 2. Delay map operations to ensure map is visible and resized
-                    setTimeout(() => {
-                        if (map) { // Defensive check for map object
-                            map.setCenter(position);
-                            map.setZoom(15);
-
-                            // Clear previous markers (if any from other hospital views or user's selection)
-                            map.clearMap();
-
-                            // Add new marker for the selected hospital
-                            const hospitalMarker = new AMap.Marker({
-                                position: position,
-                                title: hospital.name,
-                                map: map
-                            });
-
-                            // Create and open InfoWindow
-                            const infoWindow = new AMap.InfoWindow({
-                                content: `
-                                    <div style="padding: 10px; min-width: 200px;">
-                                        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 16px;">${hospital.name}</h3>
-                                        <p style="margin: 0; color: #666; font-size: 14px;">${hospital.address || '地址信息未提供'}</p>
-                                        ${hospital.clinicName ? `<p style="margin: 5px 0; color: #666; font-size: 14px;">门诊名称: ${hospital.clinicName}</p>` : ''}
-                                        ${hospital.clinicTime ? `<p style="margin: 5px 0; color: #666; font-size: 14px;">门诊时间: ${hospital.clinicTime}</p>` : ''}
-                                    </div>
-                                `,
-                                offset: new AMap.Pixel(0, -30),
-                                closeWhenClickMap: true,
-                                autoMove: true
-                            });
-
-                            hospitalMarker.on('click', () => {
-                                infoWindow.open(map, hospitalMarker.getPosition());
-                            });
-
-                            // Open info window immediately
-                            infoWindow.open(map, position);
-
-                            // 3. Scroll the map into view
-                            const mapElement = document.getElementById('amap-container');
-                            if (mapElement) {
-                                mapElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-
-                        } else {
-                            console.error("Map object not available for 'View on Map'");
-                        }
-                    }, 200); // Delay slightly longer than map.resize in returnToMap (100ms)
-
-                } else {
-                    alert('该医院没有地址信息，无法在地图上显示。');
-                }
-            });
 
             list.appendChild(item);
         });
